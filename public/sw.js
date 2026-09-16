@@ -1,5 +1,5 @@
 // Discover Nashik Service Worker (PWA Offline Support)
-const CACHE_NAME = "discover-nashik-v1";
+const CACHE_NAME = "discover-nashik-v2";
 const PRECACHE_ASSETS = [
   "/",
   "/manifest.webmanifest",
