@@ -1,4 +1,6 @@
-// POST /api/voice/stt — multipart { audio, lang } -> { transcript }.
+// POST /api/voice/stt — multipart { audio, lang } -> { transcript, lang }.
+// `lang` in the request is only a fallback; `lang` in the response is the
+// language Sarvam actually heard, which is what the answer must be in.
 //
 // The client only reaches this after Web Speech has failed it (unsupported
 // browser, or repeated no-speech). 503 means "Sarvam is not available" and is
@@ -39,8 +41,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const transcript = await speechToText(audio, lang as Lang);
-    return Response.json({ transcript });
+    const { transcript, lang: heard } = await speechToText(audio, lang as Lang);
+    return Response.json({ transcript, lang: heard });
   } catch (error) {
     // See the matching note in ../tts/route.ts: 503 means "do not bother
     // retrying Sarvam", 502 means "Sarvam had a bad moment".

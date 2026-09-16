@@ -122,7 +122,7 @@ export function useVoiceAssistant(): VoiceAssistant {
   // Recogniser callbacks fire outside the React lifecycle; these refs let them
   // read current values and skip work after unmount without re-binding.
   const mountedRef = useRef(true);
-  const askRef = useRef<(text: string) => Promise<void>>(async () => {});
+  const askRef = useRef<(text: string, heardLang?: Lang) => Promise<void>>(async () => {});
   /** Set when the user pressed stop, so onend does not report "no-speech". */
   const abortedRef = useRef(false);
   /** Guards the final-result handler: one ask() per listening session. */
@@ -156,9 +156,13 @@ export function useVoiceAssistant(): VoiceAssistant {
    * sees the detected language on this very call; setLang() then moves the UI
    * toggle so the reply, the TTS voice and the next utterance all agree.
    */
-  const applyDetectedLang = useCallback((raw: string): string => {
+  const applyDetectedLang = useCallback((raw: string, heardLang?: Lang): string => {
     const uiLang = langRef.current;
-    const detection = detectLang(raw, uiLang);
+    // Audio-based detection (Sarvam) beats reading the text: Hindi and Marathi
+    // share a script, and a short utterance may carry no marker words at all.
+    const detection = heardLang
+      ? { lang: heardLang, confident: true, reason: "detected from audio by Sarvam" }
+      : detectLang(raw, uiLang);
 
     if (!detection.confident) {
       console.warn(
@@ -183,11 +187,11 @@ export function useVoiceAssistant(): VoiceAssistant {
 
   /** Typed-input path, and the destination of every recognised utterance. */
   const ask = useCallback(
-    async (text: string) => {
+    async (text: string, heardLang?: Lang) => {
       const raw = text.trim();
       if (!raw) return;
 
-      const query = applyDetectedLang(raw);
+      const query = applyDetectedLang(raw, heardLang);
 
       setTranscript(query);
       setState("thinking");
@@ -299,10 +303,10 @@ export function useVoiceAssistant(): VoiceAssistant {
 
     setState("thinking");
     const activeLang = langRef.current;
-    const transcribed = await transcribeViaSarvam(audio, activeLang);
+    const heard = await transcribeViaSarvam(audio, activeLang);
     if (!mountedRef.current || abortedRef.current) return;
 
-    if (!transcribed) {
+    if (!heard.transcript) {
       // Sarvam was our last resort; tell the pilgrim to type instead of
       // looping on a recogniser that has already failed twice.
       fail("unsupported");
@@ -310,7 +314,7 @@ export function useVoiceAssistant(): VoiceAssistant {
     }
 
     noSpeechStreakRef.current = 0;
-    void askRef.current(transcribed);
+    void askRef.current(heard.transcript, heard.lang ?? undefined);
   }, [fail]);
 
   const start = useCallback(() => {

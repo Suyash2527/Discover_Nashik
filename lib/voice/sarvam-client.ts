@@ -208,9 +208,18 @@ function isSarvamKnownDown(): boolean {
   return Date.now() - sarvamDownSince < 60_000;
 }
 
-/** Transcribe via /api/voice/stt. Returns "" when unavailable. */
-export async function transcribeViaSarvam(audio: Blob, lang: Lang): Promise<string> {
-  if (isSarvamKnownDown()) return "";
+export interface HeardUtterance {
+  transcript: string;
+  /** Language detected from the audio itself; null if the server did not say. */
+  lang: Lang | null;
+}
+
+const NOTHING_HEARD: HeardUtterance = { transcript: "", lang: null };
+const LANGS: readonly Lang[] = ["en-IN", "hi-IN", "mr-IN"];
+
+/** Transcribe via /api/voice/stt. transcript is "" when unavailable. */
+export async function transcribeViaSarvam(audio: Blob, lang: Lang): Promise<HeardUtterance> {
+  if (isSarvamKnownDown()) return NOTHING_HEARD;
   try {
     const form = new FormData();
     form.append("audio", audio, "audio.wav");
@@ -220,13 +229,16 @@ export async function transcribeViaSarvam(audio: Blob, lang: Lang): Promise<stri
     noteSarvamStatus(response.status);
     if (!response.ok) {
       console.warn(`[voice] Sarvam STT unavailable (${response.status})`);
-      return "";
+      return NOTHING_HEARD;
     }
-    const data = (await response.json()) as { transcript?: string };
-    return (data.transcript ?? "").trim();
+    const data = (await response.json()) as { transcript?: string; lang?: string };
+    return {
+      transcript: (data.transcript ?? "").trim(),
+      lang: LANGS.find((l) => l === data.lang) ?? null,
+    };
   } catch (error) {
     console.warn("[voice] Sarvam STT request failed:", error);
-    return "";
+    return NOTHING_HEARD;
   }
 }
 

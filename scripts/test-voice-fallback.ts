@@ -148,14 +148,16 @@ async function testSarvamWrapper() {
   await check("speechToText posts multipart audio and returns the transcript", async () => {
     const calls = stubFetch(() => json({ transcript: "  राम कुंड कुठे आहे  " }));
     const audio = new Blob([new Uint8Array([1, 2, 3, 4])], { type: "audio/webm" });
-    const transcript = await speechToText(audio, "mr-IN");
+    const { transcript, lang } = await speechToText(audio, "mr-IN");
 
     equal(calls[0].url, "https://api.sarvam.ai/speech-to-text", "url");
     const form = calls[0].init.body as FormData;
-    equal(form.get("language_code"), "mr-IN", "language_code");
+    // Never the toggle: a language_code makes Sarvam translate, not transcribe.
+    equal(form.get("language_code"), "unknown", "language_code");
     assert(form.get("model"), "a model must be pinned");
     assert(form.get("file") instanceof Blob, "file must be a Blob");
     equal(transcript, "राम कुंड कुठे आहे", "trimmed transcript");
+    equal(lang, "mr-IN", "falls back to the hint when Sarvam reports no language");
   });
 
   await check("speechToText throws on empty audio, HTTP error, and empty transcript", async () => {
@@ -230,6 +232,19 @@ async function testRoutes() {
     equal(response.status, 200, "status");
     const body = (await response.json()) as { transcript: string };
     equal(body.transcript, "शौचालय कुठे आहे", "transcript");
+  });
+
+  await check("stt route answers in the language HEARD, not the toggle", async () => {
+    // The reported bug: toggle on Marathi, pilgrim speaks English.
+    const calls = stubFetch(() => json({ transcript: "Where is Ramkund?", language_code: "en-IN" }));
+    const form = new FormData();
+    form.append("audio", new Blob([new Uint8Array([1, 2, 3])], { type: "audio/wav" }), "a.wav");
+    form.append("lang", "mr-IN");
+    const response = await sttRoute(sttRequest(form));
+    const body = (await response.json()) as { transcript: string; lang: string };
+    equal((calls[0].init.body as FormData).get("language_code"), "unknown", "toggle not sent upstream");
+    equal(body.transcript, "Where is Ramkund?", "transcript untranslated");
+    equal(body.lang, "en-IN", "lang is what was heard");
   });
 
   await check("stt route rejects a request with no audio", async () => {

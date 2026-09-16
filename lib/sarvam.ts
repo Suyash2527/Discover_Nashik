@@ -114,11 +114,28 @@ async function post(path: string, init: RequestInit): Promise<Response> {
   }
 }
 
+export interface SarvamTranscript {
+  transcript: string;
+  /** The language Sarvam HEARD — the one to answer in. */
+  lang: Lang;
+}
+
+const LANGS: readonly Lang[] = ["en-IN", "hi-IN", "mr-IN"];
+
 /**
  * Transcribe recorded audio. The primary online path — Web Speech only takes
  * over when the device is offline or this call fails.
+ *
+ * Always auto-detects (language_code "unknown"), never passes the UI toggle.
+ * Given a language_code, Sarvam does not transcribe in it — it TRANSLATES into
+ * it: English "Where is Ramkund?" sent as mr-IN came back as "कुठे आहे रामकुंद?"
+ * (verified 2026-09-16, same for every language pair). The answer then followed
+ * the toggle, not the pilgrim. With "unknown" all three languages come back
+ * verbatim with the correct detected language_code.
+ *
+ * `fallbackLang` is used only if Sarvam reports a language we do not serve.
  */
-export async function speechToText(audioBlob: Blob, lang: Lang): Promise<string> {
+export async function speechToText(audioBlob: Blob, fallbackLang: Lang): Promise<SarvamTranscript> {
   if (audioBlob.size === 0) throw new Error("Sarvam STT received empty audio");
 
   const form = new FormData();
@@ -127,13 +144,14 @@ export async function speechToText(audioBlob: Blob, lang: Lang): Promise<string>
   form.append("file", audioBlob, "audio.wav");
   form.append("model", STT_MODEL);
   form.append("mode", STT_MODE);
-  form.append("language_code", lang);
+  form.append("language_code", "unknown");
 
   const response = await post("/speech-to-text", { body: form });
-  const data = (await response.json()) as { transcript?: string };
+  const data = (await response.json()) as { transcript?: string; language_code?: string | null };
   const transcript = (data.transcript ?? "").trim();
   if (!transcript) throw new Error("Sarvam STT returned an empty transcript");
-  return transcript;
+  const heard = LANGS.find((l) => l === data.language_code);
+  return { transcript, lang: heard ?? fallbackLang };
 }
 
 export interface SarvamSpeech {
