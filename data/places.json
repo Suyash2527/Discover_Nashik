@@ -1,0 +1,89 @@
+[
+  {
+    "id": "ramkund",
+    "name": {
+      "en": "Ramkund",
+      "hi": "रामकुंड",
+      "mr": "रामकुंड"
+    },
+    "aliases": [
+      "ram kund",
+      "raamkund",
+      "ram kunda"
+    ],
+    "category": "ghat",
+    "lat": 20.0059,
+    "lng": 73.791,
+    "area": "Panchavati",
+    "description": {
+      "en": "Holy bathing tank on the Godavari in Panchavati.",
+      "hi": "पंचवटी में गोदावरी नदी पर पवित्र स्नान कुंड।",
+      "mr": "पंचवटीतील गोदावरी नदीवरील पवित्र स्नानकुंड."
+    },
+    "open24x7": true,
+    "accessible": false,
+    "verified": {
+      "by": "SAMPLE-UNVERIFIED",
+      "on": "",
+      "source": "approx coords - replace"
+    }
+  },
+  {
+    "id": "kalaram-mandir",
+    "name": {
+      "en": "Kalaram Mandir",
+      "hi": "कालाराम मंदिर",
+      "mr": "काळाराम मंदिर"
+    },
+    "aliases": [
+      "kala ram",
+      "kalaram temple",
+      "kaalaram"
+    ],
+    "category": "temple",
+    "lat": 20.0069,
+    "lng": 73.7936,
+    "area": "Panchavati",
+    "description": {
+      "en": "Historic black-stone temple of Lord Ram.",
+      "hi": "भगवान राम का ऐतिहासिक काले पत्थर का मंदिर।",
+      "mr": "प्रभू रामाचे काळ्या दगडातील ऐतिहासिक मंदिर."
+    },
+    "open24x7": false,
+    "accessible": true,
+    "verified": {
+      "by": "SAMPLE-UNVERIFIED",
+      "on": "",
+      "source": "approx coords - replace"
+    }
+  },
+  {
+    "id": "trimbakeshwar-temple",
+    "name": {
+      "en": "Trimbakeshwar Temple",
+      "hi": "त्र्यंबकेश्वर मंदिर",
+      "mr": "त्र्यंबकेश्वर मंदिर"
+    },
+    "aliases": [
+      "trimbak",
+      "tryambakeshwar",
+      "trimbakeshwar"
+    ],
+    "category": "temple",
+    "lat": 19.9322,
+    "lng": 73.5309,
+    "area": "Trimbakeshwar",
+    "description": {
+      "en": "One of the twelve Jyotirlingas.",
+      "hi": "बारह ज्योतिर्लिंगों में से एक।",
+      "mr": "बारा ज्योतिर्लिंगांपैकी एक."
+    },
+    "open24x7": false,
+    "accessible": false,
+    "verified": {
+      "by": "SAMPLE-UNVERIFIED",
+      "on": "",
+      "source": "approx coords - replace"
+    }
+  }
+]
