@@ -1,5 +1,6 @@
 // Discover Nashik Service Worker (PWA Offline Support)
-const CACHE_NAME = "discover-nashik-v3";
+const CACHE_NAME = "discover-nashik-v4";
+const PHOTO_CACHE = "discover-nashik-photos-v1";
 const PRECACHE_ASSETS = [
   "/",
   "/manifest.webmanifest",
@@ -24,7 +25,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)),
+        keys.filter((key) => key !== CACHE_NAME && key !== PHOTO_CACHE).map((key) => caches.delete(key)),
       ),
     ),
   );
@@ -46,8 +47,28 @@ self.addEventListener("fetch", (event) => {
     url.pathname.startsWith("/api/") ||
     url.hostname.includes("googleapis.com") ||
     url.hostname.includes("gstatic.com") ||
-    url.hostname.includes("google.com")
+    url.hostname.includes("google.com") ||
+    // Google Places photos: terms forbid storing them, so never cache.
+    url.hostname.includes("googleusercontent.com")
   ) {
+    return;
+  }
+
+  // Place photos (Wikimedia, downloaded at build time): cache-first in their
+  // own cache so a pilgrim who has seen a photo still sees it offline, and a
+  // new app version (CACHE_NAME bump) does not throw them away.
+  if (url.origin === self.location.origin && url.pathname.startsWith("/photos/")) {
+    event.respondWith(
+      caches.open(PHOTO_CACHE).then((cache) =>
+        cache.match(event.request).then((cached) => {
+          if (cached) return cached;
+          return fetch(event.request).then((response) => {
+            if (response && response.status === 200) cache.put(event.request, response.clone());
+            return response;
+          });
+        }),
+      ),
+    );
     return;
   }
 
@@ -58,6 +79,7 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith(".jpg") ||
     url.pathname.endsWith(".jpeg") ||
     url.pathname.endsWith(".svg") ||
+    url.pathname.endsWith(".webp") ||
     url.pathname.endsWith(".ico") ||
     url.pathname.endsWith(".json") ||
     url.pathname.endsWith(".css") ||

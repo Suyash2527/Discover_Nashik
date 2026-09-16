@@ -22,6 +22,13 @@
 // REQUEST EXTENSION (not in /types, which is locked): the body may carry an
 // optional `history: { role: "user" | "assistant"; text: string }[]` — see
 // lib/history.ts. Clients that omit it get exactly the previous behaviour.
+//
+// RESPONSE EXTENSION (also not in /types): a "how do I get to X" question with
+// a named place adds `directions: { placeId, mode, distanceMeters?,
+// durationSeconds? }`. The UI opens the Directions card for placeId (which
+// calls POST /api/route itself). With the pilgrim's location and a working
+// Routes API the answer is the real walking distance and time; otherwise the
+// normal answer path runs and the card falls back to "Head this way".
 import type { NextRequest } from "next/server";
 import { getActiveAdvisories } from "@/lib/advisories";
 import {
@@ -36,6 +43,7 @@ import {
   type AnswerMode,
 } from "@/lib/gemini";
 import { parseHistory, type HistoryTurn } from "@/lib/history";
+import { computeRoute, directionsAnswer, isDirectionsQuestion, type TravelMode } from "@/lib/directions";
 import { answerOffline } from "@/lib/intent-offline";
 import { factText, isSafetyFact, OFFLINE_FACT_SCORE, retrieveKnowledgeScored, type ScoredFact } from "@/lib/knowledge";
 import { detectCategoryIntents, PLACES, queryNamesPlace, retrieveScored, retrieveScoredNear, type ScoredPlace } from "@/lib/rag";
@@ -43,6 +51,9 @@ import { normalize } from "@/lib/text";
 import type { Advisory, AskRequest, AskResponse, Lang, Place } from "@/types";
 
 const LANGS: Lang[] = ["en-IN", "hi-IN", "mr-IN"];
+
+/** Route-local response extension: which Directions card to open. */
+interface DirectionsHint { placeId: string; mode: TravelMode; distanceMeters?: number; durationSeconds?: number }
 
 /** AskRequest plus the optional, route-local conversation memory. */
 type AskRequestWithHistory = AskRequest & { history?: HistoryTurn[] };
@@ -266,11 +277,30 @@ export async function POST(request: NextRequest) {
   // from our data, not the web — only LIVE_TOPICS words can still force search.
   const live = needsLiveSearch(query, detectCategoryIntents(query).size > 0 || mode === "grounded");
 
-  let answer: string;
+  let answer = "";
   let source: AskResponse["source"] = "offline";
   let path = "offline";
 
-  if (isGeminiConfigured()) {
+  // "How do I get to Ramkund?" — answer from the route, not the model. A
+  // confident retrieval match counts as named: Marathi/Hindi attach case
+  // suffixes ("रामकुंडला", "रामकुंडचा") that the strict name check misses, and
+  // "how do I get to the nearest toilet" should route to that toilet.
+  const target = (placeNamed || topScore >= NAME_MATCH_FLOOR) && isDirectionsQuestion(query) ? places[0] : undefined;
+  let directions: DirectionsHint | undefined = target && { placeId: target.id, mode: "walk" };
+  if (target && origin) {
+    try {
+      const route = await computeRoute(origin, target, "walk", lang, GEMINI_TIMEOUT_MS);
+      directions = { placeId: target.id, mode: "walk", distanceMeters: route.distanceMeters, durationSeconds: route.durationSeconds };
+      answer = directionsAnswer(target.name[lang.slice(0, 2) as "en" | "hi" | "mr"], route, lang);
+      path = "routes";
+    } catch (error) {
+      console.warn("[api/ask] Routes API unavailable, answering normally:", (error as Error).message);
+    }
+  }
+
+  if (answer) {
+    // Directions answer already set.
+  } else if (isGeminiConfigured()) {
     const advisories = await advisoriesPromise;
     const budget = complexity === "complex" || live ? GEMINI_COMPLEX_TIMEOUT_MS : GEMINI_TIMEOUT_MS;
     try {
@@ -297,10 +327,11 @@ export async function POST(request: NextRequest) {
       `path=${path} facts=${facts.map((f) => f.id).join(",") || "-"} ${Date.now() - started}ms`,
   );
 
-  const response: AskResponse = {
+  const response: AskResponse & { directions?: DirectionsHint } = {
     answer,
-    placeIds: placeIdsFor(mode, answer, places),
+    placeIds: directions ? [directions.placeId] : placeIdsFor(mode, answer, places),
     source,
+    ...(directions && { directions }),
   };
   return Response.json(response);
 }
