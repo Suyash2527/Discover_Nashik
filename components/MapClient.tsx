@@ -1,579 +1,412 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { APIProvider, Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
 import { Place, CATEGORIES, Category } from "@/types/place";
-import { CategoryIcon, categoryColor, SearchIcon, MicIcon, LocateIcon, XIcon } from "./icons";
+import type { Lang } from "@/types/voice";
+import { useVoiceAssistant } from "@/lib/voice";
+import { formatDistanceKm, haversineKm, type LatLng } from "@/lib/geo";
+import { CategoryIcon, categoryColor, SearchIcon, LocateIcon, XIcon } from "./icons";
+import { CATEGORY_LABEL, LANGS, loc, pick, placeName } from "./copy";
 import VoicePanel from "./VoicePanel";
 import MicFab from "./MicFab";
 import PlaceSheet from "./PlaceSheet";
+import SosSheet from "./SosSheet";
 import HintOverlay from "./HintOverlay";
+import AdvisoryBanner, { SEVERITY_COLOR, useActiveAdvisories } from "./AdvisoryBanner";
+import type { Severity } from "@/types/advisory";
 
-// ─── Constants ─────────────────────────────────────────────────────────────
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
-const MAP_ID  = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID  ?? "DEMO_MAP_ID";
-const NASHIK_CENTER = { lat: 20.0059, lng: 73.7910 };
+const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
+const NASHIK_CENTER = { lat: 20.0059, lng: 73.791 };
 
-const CATEGORY_LABELS: Record<Category, string> = {
-  temple:   "Temple",
-  ghat:     "Ghat",
-  food:     "Food",
-  stay:     "Stay",
-  parking:  "Parking",
-  hospital: "Hospital",
-  police:   "Police",
-  toilet:   "Toilet",
-  water:    "Water",
-  chemist:  "Chemist",
-};
-
-// ─── Teardrop pin ──────────────────────────────────────────────────────────
-function PlaceMarker({ category, isHighlighted }: { category: string; isHighlighted: boolean }) {
-  const color = categoryColor(category);
-  const size  = isHighlighted ? 52 : 40;
-
+// ─── Map pieces ────────────────────────────────────────────────────────────
+function Pin({ category, active, alert }: { category: Category; active: boolean; alert?: Severity }) {
+  const size = active ? 40 : 28;
   return (
     <div
-      className={`marker-pop-in ${isHighlighted ? "marker-highlight" : ""} flex items-center justify-center rounded-full text-white border-[3px] border-white transition-all duration-200`}
+      className="relative flex items-center justify-center rounded-full text-white transition-all duration-150"
       style={{
         width: size,
         height: size,
-        backgroundColor: color,
-        boxShadow: `0 4px 12px ${color}80`,
-        transform: isHighlighted ? "translate(-50%,-55%) scale(1.1)" : "translate(-50%,-55%)",
+        backgroundColor: categoryColor(category),
+        border: `2px solid ${active ? "#1D1915" : "#FBF8F2"}`,
+        boxShadow: active ? "0 0 0 3px #FBF8F2, 0 4px 10px rgba(29,25,21,.35)" : "0 1px 3px rgba(29,25,21,.35)",
+        transform: "translate(0, 50%)",
       }}
     >
-      <CategoryIcon category={category} size={isHighlighted ? 26 : 20} />
-    </div>
-  );
-}
-
-// ─── User dot ──────────────────────────────────────────────────────────────
-function UserDot() {
-  return (
-    <div
-      className="user-dot w-5 h-5 rounded-full bg-blue-500 border-[3px] border-white"
-      style={{ transform: "translate(-50%,-50%)" }}
-    />
-  );
-}
-
-// ─── Map controller (bounds / pan) ─────────────────────────────────────────
-function MapController({
-  highlightedIds,
-  places,
-  setMapReady,
-  userPos,
-}: {
-  highlightedIds: string[];
-  places: Place[];
-  setMapReady: (v: boolean) => void;
-  userPos: { lat: number; lng: number } | null;
-}) {
-  const map = useMap();
-
-  useEffect(() => { if (map) setMapReady(true); }, [map, setMapReady]);
-
-  // Fit bounds to all places on first load
-  useEffect(() => {
-    if (!map || places.length === 0) return;
-    const bounds = new google.maps.LatLngBounds();
-    places.forEach((p) => bounds.extend({ lat: p.lat, lng: p.lng }));
-    map.fitBounds(bounds, { top: 60, bottom: 100, left: 20, right: 20 });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map]); // run once when map is ready
-
-  // Pan/zoom to highlighted places
-  useEffect(() => {
-    if (!map || highlightedIds.length === 0) return;
-    const targets = places.filter((p) => highlightedIds.includes(p.id));
-    if (targets.length === 1) {
-      map.panTo({ lat: targets[0].lat, lng: targets[0].lng });
-      map.setZoom(16);
-    } else if (targets.length > 1) {
-      const b = new google.maps.LatLngBounds();
-      targets.forEach((p) => b.extend({ lat: p.lat, lng: p.lng }));
-      map.fitBounds(b, { top: 60, bottom: 200, left: 40, right: 40 });
-    }
-  }, [highlightedIds, map, places]);
-
-  // Zoom to user position
-  useEffect(() => {
-    if (!map || !userPos) return;
-    map.panTo(userPos);
-    map.setZoom(16);
-  }, [userPos, map]);
-
-  return null;
-}
-
-// ─── Popular places sidebar list ───────────────────────────────────────────
-function PopularPlaces({
-  places,
-  onSelect,
-  lang,
-}: {
-  places: Place[];
-  onSelect: (p: Place) => void;
-  lang: "mr-IN" | "hi-IN" | "en-IN";
-}) {
-  const popular = places.slice(0, 6);
-  return (
-    <div className="flex flex-col gap-2 px-1">
-      <h3 className="text-base font-bold text-[#57534E] uppercase tracking-widest mb-1">
-        {lang === "mr-IN" ? "लोकप्रिय ठिकाणे" : lang === "hi-IN" ? "लोकप्रिय स्थान" : "Popular Places"}
-      </h3>
-      {popular.map((p) => (
-        <button
-          key={p.id}
-          onClick={() => onSelect(p)}
-          className="flex items-center gap-3 p-3 rounded-xl bg-white hover:bg-gray-50 active:scale-[0.98] transition shadow-sm border border-gray-100 text-left"
+      <CategoryIcon category={category} size={active ? 21 : 15} />
+      {alert && (
+        <span
+          aria-label={`advisory: ${alert}`}
+          className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-card text-[10px] leading-none font-bold text-white"
+          style={{ backgroundColor: SEVERITY_COLOR[alert] }}
         >
-          <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center text-white shrink-0"
-            style={{ backgroundColor: categoryColor(p.category) }}
-          >
-            <CategoryIcon category={p.category} size={22} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-base font-bold text-[#1C1917] truncate">
-              {lang === "mr-IN" ? p.name.mr : lang === "hi-IN" ? p.name.hi : p.name.en}
-            </p>
-            <p className="text-sm text-[#57534E] truncate">{p.area}</p>
-          </div>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ─── Header ────────────────────────────────────────────────────────────────
-function Header({
-  lang,
-  setLang,
-}: {
-  lang: "mr-IN" | "hi-IN" | "en-IN";
-  setLang: (l: "mr-IN" | "hi-IN" | "en-IN") => void;
-}) {
-  const langs: { code: "mr-IN" | "hi-IN" | "en-IN"; label: string }[] = [
-    { code: "mr-IN", label: "मराठी" },
-    { code: "hi-IN", label: "हिंदी" },
-    { code: "en-IN", label: "En" },
-  ];
-  return (
-    <header className="h-14 bg-[#1E3A8A] flex items-center justify-between px-4 shrink-0 shadow-md z-10">
-      <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-full bg-white text-[#1E3A8A] flex items-center justify-center shadow-sm">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
-            <circle cx="12" cy="10" r="3" />
-          </svg>
-        </div>
-        <span className="text-white font-bold text-lg tracking-tight leading-none">Discover Nashik</span>
-      </div>
-      <div className="flex bg-[#172554] rounded-full p-0.5 gap-0.5">
-        {langs.map((l) => (
-          <button
-            key={l.code}
-            onClick={() => setLang(l.code)}
-            className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all ${
-              lang === l.code ? "bg-white text-[#1E3A8A]" : "text-blue-200 hover:text-white"
-            }`}
-          >
-            {l.label}
-          </button>
-        ))}
-      </div>
-    </header>
-  );
-}
-
-// ─── Search bar ────────────────────────────────────────────────────────────
-function SearchBar({
-  value,
-  onChange,
-  onMic,
-  lang,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  onMic: () => void;
-  lang: "mr-IN" | "hi-IN" | "en-IN";
-}) {
-  const placeholder =
-    lang === "mr-IN" ? "ठिकाण शोधा…" : lang === "hi-IN" ? "जगह खोजें…" : "Search places…";
-
-  return (
-    <div className="relative flex items-center mx-4 mt-3 mb-1 shrink-0">
-      <div className="absolute left-3.5 text-[#57534E] pointer-events-none">
-        <SearchIcon size={20} />
-      </div>
-      <input
-        type="search"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-white pl-10 pr-12 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#EA580C] outline-none text-[17px] font-medium text-[#1C1917] placeholder-[#A8A29E] shadow-sm transition-colors"
-      />
-      {value ? (
-        <button
-          className="absolute right-3 text-[#57534E] hover:text-[#1C1917] transition"
-          onClick={() => onChange("")}
-          aria-label="Clear search"
-        >
-          <XIcon size={20} />
-        </button>
-      ) : (
-        <button
-          className="absolute right-3 text-[#EA580C] hover:text-orange-700 transition"
-          onClick={onMic}
-          aria-label="Voice search"
-        >
-          <MicIcon size={20} />
-        </button>
+          !
+        </span>
       )}
     </div>
   );
 }
 
-// ─── Category chips row ─────────────────────────────────────────────────────
-function CategoryChips({
-  selected,
-  onToggle,
-}: {
-  selected: Set<Category>;
-  onToggle: (c: Category) => void;
+function MapController({ focus, places, userPos, onReady }: {
+  focus: string[]; places: Place[]; userPos: LatLng | null; onReady: () => void;
 }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+    onReady();
+    const b = new google.maps.LatLngBounds();
+    places.forEach((p) => b.extend(p));
+    map.fitBounds(b, 40);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map]);
+
+  useEffect(() => {
+    if (!map || focus.length === 0) return;
+    const targets = places.filter((p) => focus.includes(p.id));
+    if (targets.length === 1) {
+      map.panTo(targets[0]);
+      map.setZoom(16);
+    } else if (targets.length > 1) {
+      const b = new google.maps.LatLngBounds();
+      targets.forEach((p) => b.extend(p));
+      map.fitBounds(b, 60);
+    }
+  }, [focus, map, places]);
+
+  useEffect(() => {
+    if (!map || !userPos) return;
+    map.panTo(userPos);
+    map.setZoom(15);
+  }, [userPos, map]);
+
+  return null;
+}
+
+// ─── Chrome ────────────────────────────────────────────────────────────────
+function Masthead({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
   return (
-    <div className="relative shrink-0">
-      <div className="flex gap-2 overflow-x-auto hide-scrollbar px-4 pb-2 pt-1">
-        {CATEGORIES.map((cat) => {
-          const active = selected.has(cat);
-          const color  = categoryColor(cat);
-          return (
-            <button
-              key={cat}
-              onClick={() => onToggle(cat)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border-2 whitespace-nowrap shrink-0 transition-all active:scale-95 font-bold text-[15px]"
-              style={
-                active
-                  ? { backgroundColor: color, borderColor: color, color: "#fff" }
-                  : { backgroundColor: "#fff", borderColor: color, color: color }
-              }
-            >
-              <CategoryIcon category={cat} size={17} />
-              {CATEGORY_LABELS[cat]}
-            </button>
-          );
-        })}
+    <div className="flex items-end justify-between px-4 pt-3 md:px-5 md:pt-5">
+      <div className="leading-none">
+        <p className="kicker">{pick(lang, "Kumbh guide", "कुंभ गाइड", "कुंभ मार्गदर्शक")}</p>
+        <h1 className="font-display text-[28px] leading-[1.05] md:text-[34px]">
+          {pick(lang, "Nashik", "नासिक", "नाशिक")}
+        </h1>
       </div>
-      {/* Right fade */}
-      <div
-        className="absolute right-0 top-0 bottom-2 w-10 pointer-events-none"
-        style={{ background: "linear-gradient(to right, transparent, #FFFBF5)" }}
-      />
-    </div>
-  );
-}
-
-// ─── Bottom action bar ─────────────────────────────────────────────────────
-function ActionBar({
-  lang,
-  onSOS,
-  onNearMe,
-}: {
-  lang: "mr-IN" | "hi-IN" | "en-IN";
-  onSOS: () => void;
-  onNearMe: () => void;
-}) {
-  return (
-    <div className="h-[88px] bg-[#FFFBF5] border-t border-gray-200 flex items-center justify-between px-6 shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
-      {/* SOS */}
-      <button
-        onClick={onSOS}
-        className="flex flex-col items-center gap-1 w-[72px]"
-        aria-label="SOS Emergency"
-      >
-        <div className="w-12 h-12 rounded-2xl bg-[#DC2626] text-white flex items-center justify-center shadow-lg shadow-red-500/40 active:scale-95 transition">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-        </div>
-        <span className="text-[13px] font-black text-[#DC2626]">SOS</span>
-      </button>
-
-      {/* Mic */}
-      <MicFab lang={lang} />
-
-      {/* Near me */}
-      <button
-        onClick={onNearMe}
-        className="flex flex-col items-center gap-1 w-[72px]"
-        aria-label="Near me"
-      >
-        <div className="w-12 h-12 rounded-2xl bg-[#1E3A8A] text-white flex items-center justify-center shadow-lg shadow-blue-900/30 active:scale-95 transition">
-          <LocateIcon size={26} />
-        </div>
-        <span className="text-[13px] font-black text-[#1E3A8A]">
-          {lang === "mr-IN" ? "जवळचे" : lang === "hi-IN" ? "पास में" : "Near me"}
-        </span>
-      </button>
-    </div>
-  );
-}
-
-// ─── SOS sheet ─────────────────────────────────────────────────────────────
-function SOSSheet({ onClose, lang }: { onClose: () => void; lang: "mr-IN" | "hi-IN" | "en-IN" }) {
-  const numbers = [
-    { label: lang === "mr-IN" ? "पोलीस" : lang === "hi-IN" ? "पुलिस" : "Police", num: "100" },
-    { label: lang === "mr-IN" ? "रुग्णवाहिका" : lang === "hi-IN" ? "एम्बुलेंस" : "Ambulance", num: "108" },
-    { label: lang === "mr-IN" ? "अग्निशमन" : lang === "hi-IN" ? "अग्निशमन" : "Fire", num: "101" },
-    { label: "Kumbh Control Room", num: "18002330225" },
-  ];
-  return (
-    <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end md:items-center md:justify-center" onClick={onClose}>
-      <div className="w-full md:max-w-sm bg-white rounded-t-3xl md:rounded-3xl p-6 sheet-enter" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-black text-[#DC2626]">
-            🚨 {lang === "mr-IN" ? "आपत्कालीन" : lang === "hi-IN" ? "आपातकाल" : "Emergency"}
-          </h2>
-          <button onClick={onClose} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 active:scale-90 transition">
-            <XIcon size={20} className="text-[#57534E]" />
+      <nav className="flex gap-3 pb-1 text-[14px]" aria-label="Language">
+        {LANGS.map((l) => (
+          <button
+            key={l.code}
+            onClick={() => setLang(l.code)}
+            aria-pressed={lang === l.code}
+            className={`pb-0.5 ${lang === l.code ? "border-b-2 border-ink font-semibold text-ink" : "text-muted"}`}
+          >
+            {l.code === "en-IN" ? "EN" : l.label}
           </button>
-        </div>
-        <div className="flex flex-col gap-3">
-          {numbers.map((n) => (
-            <a
-              key={n.num}
-              href={`tel:${n.num}`}
-              className="flex items-center justify-between bg-red-50 border-2 border-red-200 rounded-2xl px-4 py-4 active:scale-[0.98] transition"
-            >
-              <span className="text-lg font-bold text-[#1C1917]">{n.label}</span>
-              <span className="text-2xl font-black text-[#DC2626]">{n.num}</span>
-            </a>
-          ))}
-        </div>
-      </div>
+        ))}
+      </nav>
     </div>
   );
 }
 
-// ─── Main export ───────────────────────────────────────────────────────────
-export default function MapClient({ places }: { places: Place[] }) {
-  const [lang, setLang] = useState<"mr-IN" | "hi-IN" | "en-IN">("en-IN");
-  const [selectedCats, setSelectedCats] = useState<Set<Category>>(new Set(CATEGORIES));
-  const [search, setSearch] = useState("");
-  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
-  const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
-  const [mapReady, setMapReady] = useState(false);
-  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
-  const [showSOS, setShowSOS] = useState(false);
-  const micRef = useRef<() => void>(() => {});
+function SearchField({ value, onChange, onSubmit, lang }: {
+  value: string; onChange: (v: string) => void; onSubmit: () => void; lang: Lang;
+}) {
+  return (
+    <form
+      className="mx-4 mt-3 flex h-12 items-center gap-2 rounded-md border border-rule bg-card px-3 focus-within:border-ink md:mx-5"
+      onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
+      role="search"
+    >
+      <SearchIcon size={18} className="shrink-0 text-muted" />
+      <input
+        type="search"
+        enterKeyHint="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={pick(lang, "Ramkund, toilet, chemist…", "रामकुंड, शौचालय, दवाई…", "रामकुंड, शौचालय, औषध…")}
+        className="h-full min-w-0 flex-1 bg-transparent text-[17px] outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
+      />
+      {value && (
+        <button type="button" onClick={() => onChange("")} aria-label="Clear" className="text-muted">
+          <XIcon size={18} />
+        </button>
+      )}
+    </form>
+  );
+}
 
-  const filteredPlaces = useMemo(() => {
+function Filters({ selected, onToggle, lang }: {
+  selected: Set<Category>; onToggle: (c: Category) => void; lang: Lang;
+}) {
+  return (
+    <div className="hide-scrollbar mt-3 flex gap-1.5 overflow-x-auto px-4 pb-3 md:flex-wrap md:px-5">
+      {CATEGORIES.map((c) => {
+        const on = selected.has(c);
+        return (
+          <button
+            key={c}
+            onClick={() => onToggle(c)}
+            aria-pressed={on}
+            className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full border pr-3.5 pl-1.5 text-[15px] font-medium transition-colors ${
+              on ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink"
+            }`}
+          >
+            <span
+              className="flex h-6 w-6 items-center justify-center rounded-full text-white"
+              style={{ backgroundColor: categoryColor(c) }}
+            >
+              <CategoryIcon category={c} size={14} />
+            </span>
+            {loc(lang, CATEGORY_LABEL[c])}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Dock({ lang, voice, onSOS, onNearMe, locating }: {
+  lang: Lang; voice: ReturnType<typeof useVoiceAssistant>; onSOS: () => void; onNearMe: () => void; locating: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-3 items-end border-t border-rule bg-paper px-4 pt-2 pb-[max(10px,env(safe-area-inset-bottom))]">
+      <button onClick={onSOS} className="flex flex-col items-center gap-1 justify-self-start" aria-label="SOS">
+        <span className="flex h-11 w-[68px] items-center justify-center rounded-full border-2 border-kumkum text-[16px] font-bold tracking-wider text-kumkum active:bg-kumkum active:text-paper">
+          SOS
+        </span>
+        <span className="text-[13px] text-ink-2">{pick(lang, "Help", "मदद", "मदत")}</span>
+      </button>
+
+      <div className="justify-self-center">
+        <MicFab lang={lang} state={voice.state} onStart={voice.start} onStop={voice.stop} />
+      </div>
+
+      <button onClick={onNearMe} className="flex flex-col items-center gap-1 justify-self-end">
+        <span className={`flex h-11 w-11 items-center justify-center rounded-full border border-ink ${locating ? "animate-pulse" : ""}`}>
+          <LocateIcon size={20} />
+        </span>
+        <span className="text-[13px] text-ink-2">{pick(lang, "Near me", "पास में", "जवळ")}</span>
+      </button>
+    </div>
+  );
+}
+
+function PlaceList({ places, userPos, lang, onSelect }: {
+  places: Place[]; userPos: LatLng | null; lang: Lang; onSelect: (p: Place) => void;
+}) {
+  const rows = useMemo(() => {
+    const withKm = places.map((p) => ({ p, km: userPos ? haversineKm(userPos, p) : null }));
+    if (userPos) withKm.sort((a, b) => (a.km ?? 0) - (b.km ?? 0));
+    return withKm.slice(0, 60);
+  }, [places, userPos]);
+
+  return (
+    <div>
+      <p className="kicker px-5 pt-4 pb-2">
+        <span className="tnum">{places.length}</span> {pick(lang, "places", "जगहें", "ठिकाणं")}
+        {userPos ? ` · ${pick(lang, "nearest first", "नज़दीकी पहले", "जवळचे आधी")}` : ""}
+      </p>
+      <ul className="border-t border-rule">
+        {rows.map(({ p, km }) => (
+          <li key={p.id} className="border-b border-rule">
+            <button onClick={() => onSelect(p)} className="flex w-full items-center gap-3 px-5 py-2.5 text-left hover:bg-paper-2">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: categoryColor(p.category) }} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[16px] font-medium">{placeName(lang, p)}</span>
+                <span className="block truncate text-[13px] text-muted">{p.area}</span>
+              </span>
+              {km !== null && (
+                <span className="tnum shrink-0 text-[13px] text-ink-2">
+                  {formatDistanceKm(km).value} {formatDistanceKm(km).unit}
+                </span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ─── Screen ────────────────────────────────────────────────────────────────
+export default function MapClient({ places }: { places: Place[] }) {
+  // One voice instance for the whole screen: the mic and the answer panel must share state.
+  const voice = useVoiceAssistant();
+  const advisories = useActiveAdvisories();
+  // Most severe advisory per place (list is already sorted closed → warning → info).
+  const alertByPlace = useMemo(() => {
+    const m = new globalThis.Map<string, Severity>();
+    for (const a of advisories) if (a.placeId && !m.has(a.placeId)) m.set(a.placeId, a.severity);
+    return m;
+  }, [advisories]);
+  const [lang, setLangState] = useState<Lang>("en-IN");
+  const [filters, setFilters] = useState<Set<Category>>(new Set());
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Place | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [userPos, setUserPos] = useState<LatLng | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [showSOS, setShowSOS] = useState(false);
+  // The answer the pilgrim closed; a new answer (or a new question) shows the panel again.
+  const [dismissedAnswer, setDismissedAnswer] = useState<string | null>(null);
+
+  const setLang = useCallback((l: Lang) => { setLangState(l); voice.setLang(l); }, [voice]);
+  const focus = useMemo(() => (selected ? [selected.id] : voice.placeIds), [selected, voice.placeIds]);
+  const voiceHidden = voice.state === "idle" && voice.answer !== "" && voice.answer === dismissedAnswer;
+
+  const visible = useMemo(() => {
     const q = search.toLowerCase().trim();
     return places.filter((p) => {
-      if (highlightedIds.includes(p.id)) return true;
-      if (!selectedCats.has(p.category)) return false;
+      if (focus.includes(p.id)) return true;
+      if (filters.size && !filters.has(p.category)) return false;
       if (!q) return true;
       return (
         p.name.en.toLowerCase().includes(q) ||
-        p.name.hi.toLowerCase().includes(q) ||
-        p.name.mr.toLowerCase().includes(q) ||
+        p.name.hi.includes(q) ||
+        p.name.mr.includes(q) ||
+        p.area.toLowerCase().includes(q) ||
         p.aliases.some((a) => a.toLowerCase().includes(q))
       );
     });
-  }, [places, selectedCats, search, highlightedIds]);
+  }, [places, filters, search, focus]);
 
-  const toggleCat = useCallback((cat: Category) => {
-    setSelectedCats((prev) => {
+  const toggleFilter = useCallback((c: Category) => {
+    setFilters((prev) => {
       const next = new Set(prev);
-      if (next.has(cat)) next.delete(cat);
-      else next.add(cat);
+      if (next.has(c)) next.delete(c);
+      else next.add(c);
       return next;
     });
   }, []);
 
-  const handleNearMe = useCallback(() => {
+  const nearMe = useCallback(() => {
     if (!navigator.geolocation) return;
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => alert("Could not get your location.")
+      (pos) => { setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocating(false); },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 8000 }
     );
   }, []);
 
-  const handlePlaceSelect = useCallback((place: Place) => {
-    setSelectedPlace(place);
-    setHighlightedIds([place.id]);
-  }, []);
+  const select = useCallback((p: Place) => setSelected(p), []);
 
-  // ─── MOBILE layout ─────────────────────────────────────────────────────
-  const mobileContent = (
-    <div className="flex flex-col h-full">
-      {/* a) Header */}
-      <Header lang={lang} setLang={setLang} />
+  // Typed question: if nothing matches locally, hand it to the assistant.
+  const submitSearch = useCallback(() => {
+    const q = search.trim();
+    if (!q) return;
+    if (visible.length === 1) select(visible[0]);
+    else if (visible.length === 0) void voice.ask(q);
+  }, [search, visible, select, voice]);
 
-      {/* b) Search */}
-      <SearchBar value={search} onChange={setSearch} onMic={() => micRef.current?.()} lang={lang} />
+  const voicePanel = (variant: "float" | "inline") =>
+    voiceHidden ? null : (
+      <VoicePanel
+        variant={variant}
+        voice={voice}
+        places={places}
+        lang={lang}
+        onSelectPlace={select}
+        onDismiss={() => setDismissedAnswer(voice.answer)}
+      />
+    );
 
-      {/* c) Category chips */}
-      <CategoryChips selected={selectedCats} onToggle={toggleCat} />
+  return (
+    <>
+      <HintOverlay />
 
-      {/* d) Map */}
-      <div className="flex-1 relative min-h-0">
-        {!mapReady && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#FFFBF5]">
-            <div className="w-10 h-10 border-4 border-gray-200 border-t-[#EA580C] rounded-full animate-spin" />
-          </div>
-        )}
+      <div
+        className="grid h-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] [grid-template-areas:'top'_'map'_'dock'] md:grid-cols-[400px_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)_auto] md:[grid-template-areas:'top_map'_'rail_map'_'dock_map']"
+      >
+        <header className="z-10 border-b border-rule bg-paper [grid-area:top]">
+          <Masthead lang={lang} setLang={setLang} />
+          <SearchField value={search} onChange={setSearch} onSubmit={submitSearch} lang={lang} />
+          <Filters selected={filters} onToggle={toggleFilter} lang={lang} />
+        </header>
 
-        <APIProvider apiKey={API_KEY}>
-          <Map
-            defaultCenter={NASHIK_CENTER}
-            defaultZoom={14}
-            mapId={MAP_ID}
-            disableDefaultUI
-            gestureHandling="greedy"
-            style={{ width: "100%", height: "100%" }}
-          >
-            <MapController
-              highlightedIds={highlightedIds}
-              places={places}
-              setMapReady={setMapReady}
-              userPos={userPos}
-            />
-            {filteredPlaces.map((place) => (
-              <AdvancedMarker
-                key={place.id}
-                position={{ lat: place.lat, lng: place.lng }}
-                onClick={() => handlePlaceSelect(place)}
-              >
-                <PlaceMarker
-                  category={place.category}
-                  isHighlighted={highlightedIds.includes(place.id)}
-                />
-              </AdvancedMarker>
-            ))}
-            {userPos && (
-              <AdvancedMarker position={userPos}>
-                <UserDot />
-              </AdvancedMarker>
-            )}
-          </Map>
-        </APIProvider>
+        {/* Desktop rail */}
+        <aside className="hidden min-h-0 overflow-y-auto border-r border-rule bg-paper [grid-area:rail] md:block">
+          {voicePanel("inline")}
+          {selected ? (
+            <div className="border-b border-rule">
+              <PlaceSheet place={selected} lang={lang} userPos={userPos} onClose={() => setSelected(null)} />
+            </div>
+          ) : (
+            <PlaceList places={visible} userPos={userPos} lang={lang} onSelect={select} />
+          )}
+        </aside>
 
-        {/* Place bottom sheet — slides up */}
-        {selectedPlace && (
-          <div className="absolute bottom-0 inset-x-0 z-30 max-h-[70%] overflow-y-auto">
-            <PlaceSheet place={selectedPlace} onClose={() => setSelectedPlace(null)} lang={lang} />
-          </div>
-        )}
-
-        {/* SOS overlay */}
-        {showSOS && <SOSSheet onClose={() => setShowSOS(false)} lang={lang} />}
-      </div>
-
-      {/* e) Bottom action bar */}
-      <ActionBar lang={lang} onSOS={() => setShowSOS(true)} onNearMe={handleNearMe} />
-    </div>
-  );
-
-  // ─── DESKTOP layout ─────────────────────────────────────────────────────
-  const desktopContent = (
-    <div className="flex flex-col h-full">
-      {/* Header across full top */}
-      <Header lang={lang} setLang={setLang} />
-
-      {/* Main content area */}
-      <div className="flex flex-1 min-h-0">
-
-        {/* Left panel */}
-        <div className="w-[360px] shrink-0 flex flex-col bg-[#FFFBF5] border-r border-gray-200 overflow-hidden">
-          {/* Search */}
-          <SearchBar value={search} onChange={setSearch} onMic={() => micRef.current?.()} lang={lang} />
-
-          {/* Chips */}
-          <CategoryChips selected={selectedCats} onToggle={toggleCat} />
-
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-            {/* Voice panel */}
-            <VoicePanel
-              onPlaceIds={setHighlightedIds}
-              onSelectPlace={handlePlaceSelect}
-              places={places}
-              lang={lang}
-            />
-
-            {/* Place details OR popular list */}
-            {selectedPlace ? (
-              <PlaceSheet place={selectedPlace} onClose={() => setSelectedPlace(null)} lang={lang} />
-            ) : (
-              <PopularPlaces places={places} onSelect={handlePlaceSelect} lang={lang} />
-            )}
-          </div>
-
-          {/* Action bar pinned at bottom of panel */}
-          <ActionBar lang={lang} onSOS={() => setShowSOS(true)} onNearMe={handleNearMe} />
-        </div>
-
-        {/* Map */}
-        <div className="flex-1 relative min-w-0">
+        <main className="relative min-h-0 [grid-area:map]">
           {!mapReady && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#FFFBF5]">
-              <div className="w-10 h-10 border-4 border-gray-200 border-t-[#EA580C] rounded-full animate-spin" />
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper-2">
+              <p className="kicker">{pick(lang, "Loading map", "नक्शा खुल रहा है", "नकाशा उघडत आहे")}</p>
             </div>
           )}
 
           <APIProvider apiKey={API_KEY}>
             <Map
               defaultCenter={NASHIK_CENTER}
-              defaultZoom={14}
+              defaultZoom={13}
               mapId={MAP_ID}
               disableDefaultUI
+              clickableIcons={false}
               gestureHandling="greedy"
               style={{ width: "100%", height: "100%" }}
+              onClick={() => setSelected(null)}
             >
-              <MapController
-                highlightedIds={highlightedIds}
-                places={places}
-                setMapReady={setMapReady}
-                userPos={userPos}
-              />
-              {filteredPlaces.map((place) => (
+              <MapController focus={focus} places={places} userPos={userPos} onReady={() => setMapReady(true)} />
+              {visible.map((p) => (
                 <AdvancedMarker
-                  key={place.id}
-                  position={{ lat: place.lat, lng: place.lng }}
-                  onClick={() => handlePlaceSelect(place)}
+                  key={p.id}
+                  position={p}
+                  title={placeName(lang, p)}
+                  zIndex={focus.includes(p.id) ? 10 : alertByPlace.has(p.id) ? 5 : 1}
+                  onClick={() => select(p)}
                 >
-                  <PlaceMarker
-                    category={place.category}
-                    isHighlighted={highlightedIds.includes(place.id)}
-                  />
+                  <Pin category={p.category} active={focus.includes(p.id)} alert={alertByPlace.get(p.id)} />
                 </AdvancedMarker>
               ))}
               {userPos && (
-                <AdvancedMarker position={userPos}>
-                  <UserDot />
+                <AdvancedMarker position={userPos} zIndex={20}>
+                  <div className="user-dot h-4 w-4 translate-y-1/2 rounded-full border-2 border-white bg-river" />
                 </AdvancedMarker>
               )}
             </Map>
           </APIProvider>
 
-          {showSOS && <SOSSheet onClose={() => setShowSOS(false)} lang={lang} />}
-        </div>
+          {/* Phone overlays */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col gap-2 md:hidden">
+            {!selected && <div className="pointer-events-auto pb-3">{voicePanel("float")}</div>}
+            {selected && (
+              <div className="pointer-events-auto max-h-[72dvh] overflow-y-auto rounded-t-xl border-t border-rule shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">
+                <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-rule" />
+                <PlaceSheet place={selected} lang={lang} userPos={userPos} onClose={() => setSelected(null)} />
+              </div>
+            )}
+          </div>
+
+          {!(search && visible.length === 0) && (
+            <AdvisoryBanner advisories={advisories} places={places} lang={lang} onSelectPlace={select} />
+          )}
+
+          {search && visible.length === 0 && (
+            <div className="absolute inset-x-3 top-3 z-20 rounded-md border border-rule bg-card px-4 py-3 text-[15px]">
+              {pick(lang, "No place by that name. Press Enter to ask the guide.", "इस नाम की जगह नहीं मिली। Enter दबाकर पूछें।", "या नावाचं ठिकाण नाही. Enter दाबून विचारा.")}
+            </div>
+          )}
+        </main>
+
+        <footer className="z-10 [grid-area:dock] md:border-r md:border-rule">
+          <Dock lang={lang} voice={voice} onSOS={() => setShowSOS(true)} onNearMe={nearMe} locating={locating} />
+        </footer>
       </div>
-    </div>
-  );
 
-  return (
-    <>
-      <HintOverlay />
-
-      {/* Mobile: hidden at md+, Desktop: hidden below md */}
-      <div className="block md:hidden h-full">{mobileContent}</div>
-      <div className="hidden md:block h-full">{desktopContent}</div>
+      {showSOS && (
+        <SosSheet lang={lang} places={places} userPos={userPos} onClose={() => setShowSOS(false)} onSelectPlace={select} />
+      )}
     </>
   );
 }
