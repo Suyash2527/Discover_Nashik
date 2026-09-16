@@ -383,26 +383,4 @@ export async function answerGeneralWithGemini(
   return generate(buildGeneralPrompt(query, lang, contextPlaces, origin));
 }
 
-// ---------------------------------------------------------------------------
-// Offline counterpart for general questions
-// ---------------------------------------------------------------------------
-
-/**
- * Lives here rather than in lib/intent-offline.ts because it is the direct
- * counterpart of answerGeneralWithGemini: a general question cannot be answered
- * from data/places.json at all, so there is no template to fall back to — only
- * an honest "I need the network for this one".
- *
- * This must NOT read like "place not found": the pilgrim asked about customs or
- * safety, not about a place, and a "not in my list" reply would be a
- * non-sequitur.
- */
-const GENERAL_OFFLINE: Record<LangKey, string> = {
-  en: "I need an internet connection to answer that one. You can still ask me to find places nearby — that works offline.",
-  hi: "इसका उत्तर देने के लिए मुझे इंटरनेट की आवश्यकता है। आप मुझसे आस-पास की जगहें अब भी पूछ सकते हैं — वह ऑफ़लाइन काम करता है।",
-  mr: "याचे उत्तर देण्यासाठी मला इंटरनेट लागेल. जवळची ठिकाणे तुम्ही आताही विचारू शकता — ते ऑफलाइन चालते.",
-};
-
-export function generalOfflineAnswer(lang: Lang): string {
-  return GENERAL_OFFLINE[langKey(lang)];
-}
+export { generalOfflineAnswer } from "./intent-offline";

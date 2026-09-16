@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { APIProvider, Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
 import { Place, CATEGORIES, Category } from "@/types/place";
+import { useUserPosition } from "@/lib/geolocation";
+import { bearingDeg, compassPoint, haversineKm, formatDistanceKm } from "@/lib/geo";
 import VoiceButton from "./VoiceButton";
 
 const getCategorySvg = (category: string) => {
@@ -72,7 +74,7 @@ const PlaceMarker = ({ category, isHighlighted }: { category: string, isHighligh
   );
 };
 
-function MapController({ highlightedPlaceIds, places, setMapReady }: { highlightedPlaceIds: string[], places: Place[], setMapReady: (ready: boolean) => void }) {
+function MapController({ highlightedPlaceIds, places, setMapReady, userPosition, showDirections }: { highlightedPlaceIds: string[], places: Place[], setMapReady: (ready: boolean) => void, userPosition: { lat: number, lng: number } | null, showDirections: boolean }) {
   const map = useMap();
 
   useEffect(() => {
@@ -87,11 +89,18 @@ function MapController({ highlightedPlaceIds, places, setMapReady }: { highlight
 
     const highlightedPlaces = places.filter(p => highlightedPlaceIds.includes(p.id));
     
-    if (highlightedPlaces.length === 1) {
+    if (showDirections && userPosition && highlightedPlaces.length === 1) {
+      const bounds = new window.google.maps.LatLngBounds();
+      bounds.extend(userPosition);
+      bounds.extend({ lat: highlightedPlaces[0].lat, lng: highlightedPlaces[0].lng });
+      map.fitBounds(bounds, {
+         left: 50, right: 50, top: 150, bottom: 350
+      });
+    } else if (highlightedPlaces.length === 1) {
       map.panTo({ lat: highlightedPlaces[0].lat, lng: highlightedPlaces[0].lng });
       map.setZoom(16);
     } else if (highlightedPlaces.length > 1) {
-      const bounds = new google.maps.LatLngBounds();
+      const bounds = new window.google.maps.LatLngBounds();
       highlightedPlaces.forEach(p => {
         bounds.extend({ lat: p.lat, lng: p.lng });
       });
@@ -99,7 +108,41 @@ function MapController({ highlightedPlaceIds, places, setMapReady }: { highlight
          left: 50, right: 50, top: 150, bottom: 350
       });
     }
-  }, [highlightedPlaceIds, map, places]);
+  }, [highlightedPlaceIds, map, places, userPosition, showDirections]);
+
+  return null;
+}
+
+function DirectionLine({ origin, destination }: { origin: { lat: number; lng: number }; destination: { lat: number; lng: number } }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map || !window.google) return;
+
+    const lineSymbol = {
+      path: 'M 0,-1 0,1',
+      strokeOpacity: 1,
+      scale: 3
+    };
+
+    const polyline = new window.google.maps.Polyline({
+      path: [origin, destination],
+      geodesic: true,
+      strokeColor: '#3b82f6',
+      strokeOpacity: 0,
+      strokeWeight: 3,
+      icons: [{
+        icon: lineSymbol,
+        offset: '0',
+        repeat: '15px'
+      }]
+    });
+
+    polyline.setMap(map);
+    return () => {
+      polyline.setMap(null);
+    };
+  }, [map, origin, destination]);
 
   return null;
 }
@@ -110,6 +153,9 @@ export default function MapClient({ places }: { places: Place[] }) {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [highlightedPlaceIds, setHighlightedPlaceIds] = useState<string[]>([]);
   const [mapReady, setMapReady] = useState(false);
+  const [showDirections, setShowDirections] = useState(false);
+  
+  const { position, requested, request } = useUserPosition();
   
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyAtyRi3sk9kJTus_1RJkJqQu7FgH0DoRgY";
 
@@ -160,7 +206,20 @@ export default function MapClient({ places }: { places: Place[] }) {
             disableDefaultUI={true}
             gestureHandling="greedy"
           >
-            <MapController highlightedPlaceIds={highlightedPlaceIds} places={places} setMapReady={setMapReady} />
+            <MapController highlightedPlaceIds={highlightedPlaceIds} places={places} setMapReady={setMapReady} userPosition={position} showDirections={showDirections} />
+            
+            {showDirections && position && selectedPlace && (
+              <>
+                <AdvancedMarker position={position} zIndex={50}>
+                  <div className="relative flex items-center justify-center w-12 h-12" style={{ transform: 'translate(-50%, -50%)' }}>
+                    <div className="absolute inset-0 bg-blue-500 rounded-full opacity-20 animate-ping"></div>
+                    <div className="absolute inset-2 bg-blue-500 rounded-full opacity-40"></div>
+                    <div className="relative w-4 h-4 bg-blue-600 border-2 border-white rounded-full shadow-md"></div>
+                  </div>
+                </AdvancedMarker>
+                <DirectionLine origin={position} destination={{ lat: selectedPlace.lat, lng: selectedPlace.lng }} />
+              </>
+            )}
             
             {filteredPlaces.map((place) => (
               <AdvancedMarker 
@@ -169,6 +228,7 @@ export default function MapClient({ places }: { places: Place[] }) {
                 onClick={() => {
                    setSelectedPlace(place);
                    setHighlightedPlaceIds([place.id]);
+                   setShowDirections(false);
                 }}
               >
                 <PlaceMarker category={place.category} isHighlighted={highlightedPlaceIds.includes(place.id)} />
@@ -247,7 +307,7 @@ export default function MapClient({ places }: { places: Place[] }) {
                  </div>
                  <p className="text-sm font-semibold text-gray-500 mt-0.5">{selectedPlace.name.hi} • {selectedPlace.name.mr}</p>
               </div>
-              <button onClick={() => setSelectedPlace(null)} className="p-2 -mr-2 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full transition-colors">
+              <button onClick={() => { setSelectedPlace(null); setShowDirections(false); }} className="p-2 -mr-2 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full transition-colors">
                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
@@ -262,14 +322,37 @@ export default function MapClient({ places }: { places: Place[] }) {
             <p className="text-gray-700 mt-2 text-base leading-relaxed">{selectedPlace.description.en}</p>
             
             <div className="mt-4 flex gap-3">
-               <a 
-                 href={`https://www.google.com/maps/dir/?api=1&destination=${selectedPlace.lat},${selectedPlace.lng}`}
-                 target="_blank" rel="noopener noreferrer"
-                 className="flex-1 bg-[#1e3a8a] hover:bg-[#172554] text-white text-center py-4 rounded-2xl font-bold shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-               >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  Get Directions
-               </a>
+               {(() => {
+                 if (!position) {
+                   return (
+                     <button 
+                       onClick={() => {
+                         request();
+                         setShowDirections(true);
+                       }}
+                       className="flex-1 bg-[#1e3a8a] hover:bg-[#172554] text-white text-center py-4 rounded-2xl font-bold shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                     >
+                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                       Locate me
+                     </button>
+                   );
+                 }
+                 const km = haversineKm(position, selectedPlace);
+                 const { value, unit } = formatDistanceKm(km);
+                 const heading = bearingDeg(position, selectedPlace);
+                 const spoken = compassPoint(heading);
+                 return (
+                   <button 
+                     onClick={() => setShowDirections(true)}
+                     className="flex-1 bg-[#1e3a8a] hover:bg-[#172554] text-white text-center py-4 rounded-2xl font-bold shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                   >
+                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: `rotate(${heading}deg)` }}>
+                       <path d="M12 19V5"/><path d="m5 12 7-7 7 7"/>
+                     </svg>
+                     {value} {unit} · {spoken}
+                   </button>
+                 );
+               })()}
             </div>
           </>
         )}

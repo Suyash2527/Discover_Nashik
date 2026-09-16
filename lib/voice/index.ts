@@ -43,6 +43,8 @@ import { getUserPosition, warmUserPosition } from "../geolocation";
 import { detectLang } from "./detect-lang";
 import { correctTranscript } from "./stt-corrections";
 import { cancelSpeech, shouldUseExternalVoice, speak } from "./tts";
+import { retrieveScored } from "../rag";
+import { answerOffline, generalOfflineAnswer } from "../intent-offline";
 
 const DEFAULT_LANG: Lang = "mr-IN";
 
@@ -203,23 +205,45 @@ export function useVoiceAssistant(): VoiceAssistant {
       const here = await getUserPosition();
       if (!mountedRef.current) return;
 
-      try {
-        const body: AskRequest = {
-          query,
-          lang: activeLang,
-          ...(here && { lat: here.lat, lng: here.lng }),
+      const getOfflineAnswer = (): AskResponse => {
+        const scored = retrieveScored(query, activeLang);
+        const places = scored.map((s) => s.place);
+        const topScore = scored[0]?.score ?? 0;
+        const isGrounded = topScore > 0;
+        const ans = isGrounded && places.length > 0
+          ? answerOffline(query, activeLang, places, here ?? undefined)
+          : generalOfflineAnswer(activeLang);
+
+        return {
+          answer: ans,
+          placeIds: isGrounded ? places.map((p) => p.id) : [],
+          source: "offline",
         };
-        const response = await fetch("/api/ask", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!response.ok) throw new Error(`/api/ask responded ${response.status}`);
-        result = (await response.json()) as AskResponse;
-      } catch (error) {
-        console.error("[voice] ask failed:", error);
-        fail("failed");
-        return;
+      };
+
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (isOffline) {
+        console.info("[voice] Fully offline — serving local offline template");
+        result = getOfflineAnswer();
+      } else {
+        try {
+          const body: AskRequest = {
+            query,
+            lang: activeLang,
+            ...(here && { lat: here.lat, lng: here.lng }),
+          };
+          const response = await fetch("/api/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (!response.ok) throw new Error(`/api/ask responded ${response.status}`);
+          result = (await response.json()) as AskResponse;
+        } catch (error) {
+          console.warn("[voice] ask fetch failed offline, serving local answer:", error);
+          result = getOfflineAnswer();
+        }
       }
 
       if (!mountedRef.current) return;
