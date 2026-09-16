@@ -2189,12 +2189,12 @@
       "nashik station",
       "nsk"
     ],
-    "category": "parking",
+    "category": "transport",
     "lat": 19.948145,
     "lng": 73.84129,
     "area": "Nashik Road",
     "description": {
-      "en": "Main railway station for Nashik (transport hub, listed under parking).",
+      "en": "Main railway station for Nashik.",
       "hi": "नासिक का मुख्य रेलवे स्टेशन (परिवहन केंद्र, पार्किंग श्रेणी में)।",
       "mr": "नाशिकचे मुख्य रेल्वे स्थानक (वाहतूक केंद्र, पार्किंग श्रेणीत)."
     },
@@ -2217,12 +2217,12 @@
       "thakkar bazaar bus stand",
       "new cbs"
     ],
-    "category": "parking",
+    "category": "transport",
     "lat": 19.998364,
     "lng": 73.780847,
     "area": "City",
     "description": {
-      "en": "Major MSRTC bus stand in the city centre (transport hub, listed under parking).",
+      "en": "Major MSRTC bus stand in the city centre.",
       "hi": "शहर के बीच प्रमुख एसटी बस स्टैंड (परिवहन केंद्र, पार्किंग श्रेणी में)।",
       "mr": "शहराच्या मध्यभागी मुख्य एसटी बस स्थानक (वाहतूक केंद्र, पार्किंग श्रेणीत)."
     },
@@ -2245,12 +2245,12 @@
       "mahamarg bus stand",
       "highway bus stand"
     ],
-    "category": "parking",
+    "category": "transport",
     "lat": 19.988042,
     "lng": 73.782937,
     "area": "City",
     "description": {
-      "en": "MSRTC bus stand at Mumbai Naka (transport hub, listed under parking).",
+      "en": "MSRTC bus stand at Mumbai Naka.",
       "hi": "मुंबई नाका पर एसटी बस स्टैंड (परिवहन केंद्र, पार्किंग श्रेणी में)।",
       "mr": "मुंबई नाका येथील एसटी बस स्थानक (वाहतूक केंद्र, पार्किंग श्रेणीत)."
     },
@@ -2273,12 +2273,12 @@
       "nimani stand",
       "panchavati bus stand"
     ],
-    "category": "parking",
+    "category": "transport",
     "lat": 20.011676,
     "lng": 73.796822,
     "area": "Panchavati",
     "description": {
-      "en": "City bus stand in Panchavati, closest to Ramkund (transport hub, listed under parking).",
+      "en": "City bus stand in Panchavati, closest to Ramkund.",
       "hi": "पंचवटी में सिटी बस स्टैंड, रामकुंड के सबसे पास (परिवहन केंद्र, पार्किंग श्रेणी में)।",
       "mr": "पंचवटीतील शहर बस स्थानक, रामकुंडाजवळ (वाहतूक केंद्र, पार्किंग श्रेणीत)."
     },
@@ -2300,12 +2300,12 @@
       "mela stand",
       "mela bus station"
     ],
-    "category": "parking",
+    "category": "transport",
     "lat": 19.999883,
     "lng": 73.780784,
     "area": "City",
     "description": {
-      "en": "Bus stand next to Thakkar Bazar (transport hub, listed under parking).",
+      "en": "Bus stand next to Thakkar Bazar.",
       "hi": "ठक्कर बाज़ार के पास बस स्टैंड (परिवहन केंद्र, पार्किंग श्रेणी में)।",
       "mr": "ठक्कर बाजारजवळील बस स्थानक (वाहतूक केंद्र, पार्किंग श्रेणीत)."
     },
@@ -2328,12 +2328,12 @@
       "trimbak depot",
       "trimbak st stand"
     ],
-    "category": "parking",
+    "category": "transport",
     "lat": 19.938155,
     "lng": 73.536349,
     "area": "Trimbakeshwar",
     "description": {
-      "en": "MSRTC bus depot for Trimbakeshwar (transport hub, listed under parking).",
+      "en": "MSRTC bus depot for Trimbakeshwar.",
       "hi": "त्र्यंबकेश्वर का एसटी बस डिपो (परिवहन केंद्र, पार्किंग श्रेणी में)।",
       "mr": "त्र्यंबकेश्वरचे एसटी बस डेपो (वाहतूक केंद्र, पार्किंग श्रेणीत)."
     },
@@ -2355,12 +2355,12 @@
       "tapovan bus stand",
       "tapovan city bus"
     ],
-    "category": "parking",
+    "category": "transport",
     "lat": 20.008274,
     "lng": 73.814387,
     "area": "Tapovan",
     "description": {
-      "en": "City bus depot at Tapovan (transport hub, listed under parking).",
+      "en": "City bus depot at Tapovan.",
       "hi": "तपोवन में सिटी बस डिपो (परिवहन केंद्र, पार्किंग श्रेणी में)।",
       "mr": "तपोवन येथील शहर बस डेपो (वाहतूक केंद्र, पार्किंग श्रेणीत)."
     },
@@ -2368,6 +2368,1088 @@
       "by": "claude-osm",
       "on": "2026-09-16",
       "source": "https://www.openstreetmap.org/node/13447638414"
+    }
+  },
+  {
+    "id": "nashik-airport-ozar",
+    "name": {
+      "en": "Nashik Airport (Ozar)",
+      "hi": "नासिक हवाई अड्डा (ओझर)",
+      "mr": "नाशिक विमानतळ (ओझर)"
+    },
+    "aliases": [
+      "ozar airport",
+      "ojhar airport",
+      "nashik airport",
+      "vimantal",
+      "hawai adda"
+    ],
+    "category": "transport",
+    "lat": 20.11302,
+    "lng": 73.89643,
+    "area": "Ozar",
+    "description": {
+      "en": "A bus or train stop in Ozar. Check local timings before you travel.",
+      "hi": "ओझर में बस या ट्रेन का स्थान। यात्रा से पहले समय पता कर लें।",
+      "mr": "ओझर मधील बस किंवा रेल्वेचे ठिकाण. प्रवासापूर्वी वेळा तपासा."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/way/1183562361"
+    }
+  },
+  {
+    "id": "devlali-railway-station",
+    "name": {
+      "en": "Devlali Railway Station",
+      "hi": "देवलाली रेलवे स्टेशन",
+      "mr": "देवळाली रेल्वे स्थानक"
+    },
+    "aliases": [
+      "devlali station",
+      "deolali station",
+      "devlali railway"
+    ],
+    "category": "transport",
+    "lat": 19.89655,
+    "lng": 73.83674,
+    "area": "Devlali",
+    "description": {
+      "en": "A bus or train stop in Devlali. Check local timings before you travel.",
+      "hi": "देवलाली में बस या ट्रेन का स्थान। यात्रा से पहले समय पता कर लें।",
+      "mr": "देवळाली मधील बस किंवा रेल्वेचे ठिकाण. प्रवासापूर्वी वेळा तपासा."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/6171526043"
+    }
+  },
+  {
+    "id": "odha-railway-station",
+    "name": {
+      "en": "Odha Railway Station",
+      "hi": "ओढा रेलवे स्टेशन",
+      "mr": "ओढा रेल्वे स्थानक"
+    },
+    "aliases": [
+      "odha station",
+      "odha railway"
+    ],
+    "category": "transport",
+    "lat": 20.0178,
+    "lng": 73.91324,
+    "area": "Odha",
+    "description": {
+      "en": "A bus or train stop in Odha. Check local timings before you travel.",
+      "hi": "ओढा में बस या ट्रेन का स्थान। यात्रा से पहले समय पता कर लें।",
+      "mr": "ओढा मधील बस किंवा रेल्वेचे ठिकाण. प्रवासापूर्वी वेळा तपासा."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/794350278"
+    }
+  },
+  {
+    "id": "satpur-bus-stand",
+    "name": {
+      "en": "Satpur Bus Stand",
+      "hi": "सातपुर बस स्टैंड",
+      "mr": "सातपूर बस स्थानक"
+    },
+    "aliases": [
+      "satpur bus",
+      "satpur st stand"
+    ],
+    "category": "transport",
+    "lat": 19.99106,
+    "lng": 73.73154,
+    "area": "Satpur",
+    "description": {
+      "en": "A bus or train stop in Satpur. Check local timings before you travel.",
+      "hi": "सातपुर में बस या ट्रेन का स्थान। यात्रा से पहले समय पता कर लें।",
+      "mr": "सातपूर मधील बस किंवा रेल्वेचे ठिकाण. प्रवासापूर्वी वेळा तपासा."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/way/1466135608"
+    }
+  },
+  {
+    "id": "private-bus-stand-city",
+    "name": {
+      "en": "Private Bus Stand",
+      "hi": "प्राइवेट बस स्टैंड",
+      "mr": "खाजगी बस स्थानक"
+    },
+    "aliases": [
+      "private bus",
+      "travels bus",
+      "luxury bus",
+      "khajgi bus"
+    ],
+    "category": "transport",
+    "lat": 19.98944,
+    "lng": 73.78248,
+    "area": "City",
+    "description": {
+      "en": "A bus or train stop in City. Check local timings before you travel.",
+      "hi": "नासिक शहर में बस या ट्रेन का स्थान। यात्रा से पहले समय पता कर लें।",
+      "mr": "नाशिक शहर मधील बस किंवा रेल्वेचे ठिकाण. प्रवासापूर्वी वेळा तपासा."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/way/230102072"
+    }
+  },
+  {
+    "id": "indra-kund-trimbak",
+    "name": {
+      "en": "Indra Kund",
+      "hi": "इंद्र कुंड",
+      "mr": "इंद्र कुंड"
+    },
+    "aliases": [
+      "indrakund",
+      "indra kunda"
+    ],
+    "category": "ghat",
+    "lat": 19.93244,
+    "lng": 73.52861,
+    "area": "Trimbakeshwar",
+    "description": {
+      "en": "A sacred kund in Trimbakeshwar where pilgrims bathe.",
+      "hi": "त्र्यंबकेश्वर में पवित्र कुंड जहाँ श्रद्धालु स्नान करते हैं।",
+      "mr": "त्र्यंबकेश्वर मधील पवित्र कुंड जिथे भाविक स्नान करतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/way/199009723"
+    }
+  },
+  {
+    "id": "ahilyaram-mandir",
+    "name": {
+      "en": "Shree Ahilyaram Mandir",
+      "hi": "श्री अहिल्याराम मंदिर",
+      "mr": "श्री अहिल्याराम मंदिर"
+    },
+    "aliases": [
+      "ahilyaram",
+      "ahilya ram mandir"
+    ],
+    "category": "temple",
+    "lat": 20.00762,
+    "lng": 73.79272,
+    "area": "Panchavati",
+    "description": {
+      "en": "A temple in Panchavati.",
+      "hi": "पंचवटी में स्थित एक मंदिर।",
+      "mr": "पंचवटी मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/way/229991258"
+    }
+  },
+  {
+    "id": "rameshwar-mandir-panchavati",
+    "name": {
+      "en": "Rameshwar Mandir",
+      "hi": "रामेश्वर मंदिर",
+      "mr": "रामेश्वर मंदिर"
+    },
+    "aliases": [
+      "rameshwara temple",
+      "rameshwar"
+    ],
+    "category": "temple",
+    "lat": 20.00576,
+    "lng": 73.79329,
+    "area": "Panchavati",
+    "description": {
+      "en": "A temple in Panchavati.",
+      "hi": "पंचवटी में स्थित एक मंदिर।",
+      "mr": "पंचवटी मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/way/229991259"
+    }
+  },
+  {
+    "id": "dakshinmukhi-hanuman-ramkund",
+    "name": {
+      "en": "Dakshinmukhi Hanuman Mandir",
+      "hi": "दक्षिणमुखी हनुमान मंदिर",
+      "mr": "दक्षिणमुखी हनुमान मंदिर"
+    },
+    "aliases": [
+      "dakshinabhimukhi hanuman",
+      "prachin hanuman",
+      "hanuman mandir ramkund"
+    ],
+    "category": "temple",
+    "lat": 20.00628,
+    "lng": 73.79377,
+    "area": "Panchavati",
+    "description": {
+      "en": "A temple in Panchavati.",
+      "hi": "पंचवटी में स्थित एक मंदिर।",
+      "mr": "पंचवटी मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13474286805"
+    }
+  },
+  {
+    "id": "navshya-maruti",
+    "name": {
+      "en": "Navshya Maruti Devasthan",
+      "hi": "नवश्या मारुति देवस्थान",
+      "mr": "नवश्या मारुती देवस्थान"
+    },
+    "aliases": [
+      "navthya maruti",
+      "navsha maruti"
+    ],
+    "category": "temple",
+    "lat": 20.00893,
+    "lng": 73.78962,
+    "area": "Panchavati",
+    "description": {
+      "en": "A temple in Panchavati.",
+      "hi": "पंचवटी में स्थित एक मंदिर।",
+      "mr": "पंचवटी मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/way/1470366104"
+    }
+  },
+  {
+    "id": "birla-mandir-nashik",
+    "name": {
+      "en": "Birla Mandir",
+      "hi": "बिड़ला मंदिर",
+      "mr": "बिर्ला मंदिर"
+    },
+    "aliases": [
+      "birla temple",
+      "birla mandir nashik road"
+    ],
+    "category": "temple",
+    "lat": 19.96051,
+    "lng": 73.82986,
+    "area": "Nashik Road",
+    "description": {
+      "en": "A temple in Nashik Road.",
+      "hi": "नासिक रोड में स्थित एक मंदिर।",
+      "mr": "नाशिक रोड मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/4089425184"
+    }
+  },
+  {
+    "id": "adi-tryambakeshwar-mandir",
+    "name": {
+      "en": "Shri Adi Tryambakeshwar Mandir",
+      "hi": "श्री आदि त्र्यंबकेश्वर मंदिर",
+      "mr": "श्री आदि त्र्यंबकेश्वर मंदिर"
+    },
+    "aliases": [
+      "adi trimbakeshwar",
+      "aadi tryambakeshwar"
+    ],
+    "category": "temple",
+    "lat": 19.93204,
+    "lng": 73.53193,
+    "area": "Trimbakeshwar",
+    "description": {
+      "en": "A temple in Trimbakeshwar.",
+      "hi": "त्र्यंबकेश्वर में स्थित एक मंदिर।",
+      "mr": "त्र्यंबकेश्वर मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/way/1097756723"
+    }
+  },
+  {
+    "id": "gorakshanath-math-trimbak",
+    "name": {
+      "en": "Shri Guru Gorakshanath Math",
+      "hi": "श्री गुरु गोरक्षनाथ मठ",
+      "mr": "श्री गुरु गोरक्षनाथ मठ"
+    },
+    "aliases": [
+      "gorakhnath math",
+      "gorakshanath",
+      "nath math"
+    ],
+    "category": "temple",
+    "lat": 19.93187,
+    "lng": 73.5326,
+    "area": "Trimbakeshwar",
+    "description": {
+      "en": "A temple in Trimbakeshwar.",
+      "hi": "त्र्यंबकेश्वर में स्थित एक मंदिर।",
+      "mr": "त्र्यंबकेश्वर मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/way/1533200246"
+    }
+  },
+  {
+    "id": "gayatri-mata-mandir-trimbak",
+    "name": {
+      "en": "Gayatri Mata Mandir",
+      "hi": "गायत्री माता मंदिर",
+      "mr": "गायत्री माता मंदिर"
+    },
+    "aliases": [
+      "gayatri mandir trimbak"
+    ],
+    "category": "temple",
+    "lat": 19.93183,
+    "lng": 73.5304,
+    "area": "Trimbakeshwar",
+    "description": {
+      "en": "A temple in Trimbakeshwar.",
+      "hi": "त्र्यंबकेश्वर में स्थित एक मंदिर।",
+      "mr": "त्र्यंबकेश्वर मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13483206110"
+    }
+  },
+  {
+    "id": "annapurna-mandir-trimbak",
+    "name": {
+      "en": "Annapurna Mandir",
+      "hi": "अन्नपूर्णा मंदिर",
+      "mr": "अन्नपूर्णा मंदिर"
+    },
+    "aliases": [
+      "annapurna temple trimbak"
+    ],
+    "category": "temple",
+    "lat": 19.93721,
+    "lng": 73.53054,
+    "area": "Trimbakeshwar",
+    "description": {
+      "en": "A temple in Trimbakeshwar.",
+      "hi": "त्र्यंबकेश्वर में स्थित एक मंदिर।",
+      "mr": "त्र्यंबकेश्वर मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13483164960"
+    }
+  },
+  {
+    "id": "gomukh-mandir-trimbak",
+    "name": {
+      "en": "Gomukh Mandir",
+      "hi": "गोमुख मंदिर",
+      "mr": "गोमुख मंदिर"
+    },
+    "aliases": [
+      "gomukh temple",
+      "gaumukh"
+    ],
+    "category": "temple",
+    "lat": 19.91563,
+    "lng": 73.51805,
+    "area": "Trimbakeshwar",
+    "description": {
+      "en": "A temple in Trimbakeshwar.",
+      "hi": "त्र्यंबकेश्वर में स्थित एक मंदिर।",
+      "mr": "त्र्यंबकेश्वर मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/6243709265"
+    }
+  },
+  {
+    "id": "gautam-ahilya-rishi-mandir",
+    "name": {
+      "en": "Gautam Ahilya Rishi Mandir",
+      "hi": "गौतम अहिल्या ऋषि मंदिर",
+      "mr": "गौतम अहिल्या ऋषी मंदिर"
+    },
+    "aliases": [
+      "gautam rishi temple",
+      "ahilya rishi"
+    ],
+    "category": "temple",
+    "lat": 19.90675,
+    "lng": 73.50961,
+    "area": "Trimbakeshwar",
+    "description": {
+      "en": "A temple in Trimbakeshwar.",
+      "hi": "त्र्यंबकेश्वर में स्थित एक मंदिर।",
+      "mr": "त्र्यंबकेश्वर मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/12876659958"
+    }
+  },
+  {
+    "id": "gurudwara-guru-nanak-devlali",
+    "name": {
+      "en": "Gurudwara Shri Guru Nanak Devji",
+      "hi": "गुरुद्वारा श्री गुरु नानक देवजी",
+      "mr": "गुरुद्वारा श्री गुरु नानक देवजी"
+    },
+    "aliases": [
+      "gurudwara",
+      "gurdwara devlali",
+      "sikh temple"
+    ],
+    "category": "temple",
+    "lat": 19.90386,
+    "lng": 73.82766,
+    "area": "Devlali",
+    "description": {
+      "en": "A temple in Devlali.",
+      "hi": "देवलाली में स्थित एक मंदिर।",
+      "mr": "देवळाली मधील एक मंदिर."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/relation/20317740"
+    }
+  },
+  {
+    "id": "six-sigma-hospital",
+    "name": {
+      "en": "Six Sigma Multispeciality and Accident Hospital",
+      "hi": "सिक्स सिग्मा मल्टीस्पेशियलिटी अस्पताल",
+      "mr": "सिक्स सिग्मा मल्टीस्पेशालिटी रुग्णालय"
+    },
+    "aliases": [
+      "six sigma",
+      "accident hospital"
+    ],
+    "category": "hospital",
+    "lat": 20.00032,
+    "lng": 73.75462,
+    "area": "Gangapur Road",
+    "description": {
+      "en": "A hospital in Gangapur Road.",
+      "hi": "गंगापुर रोड में एक अस्पताल।",
+      "mr": "गंगापूर रोड मधील एक रुग्णालय."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/7649608323"
+    }
+  },
+  {
+    "id": "surana-hospital-nashik-road",
+    "name": {
+      "en": "Surana Hospital",
+      "hi": "सुराणा अस्पताल",
+      "mr": "सुराणा रुग्णालय"
+    },
+    "aliases": [
+      "surana hospital"
+    ],
+    "category": "hospital",
+    "lat": 19.94767,
+    "lng": 73.8347,
+    "area": "Nashik Road",
+    "description": {
+      "en": "A hospital in Nashik Road.",
+      "hi": "नासिक रोड में एक अस्पताल।",
+      "mr": "नाशिक रोड मधील एक रुग्णालय."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/7053694059"
+    }
+  },
+  {
+    "id": "sushrut-hospital",
+    "name": {
+      "en": "Sushrut Hospital",
+      "hi": "सुश्रुत अस्पताल",
+      "mr": "सुश्रुत रुग्णालय"
+    },
+    "aliases": [
+      "sushrut"
+    ],
+    "category": "hospital",
+    "lat": 20.00278,
+    "lng": 73.77527,
+    "area": "City",
+    "description": {
+      "en": "A hospital in City.",
+      "hi": "नासिक शहर में एक अस्पताल।",
+      "mr": "नाशिक शहर मधील एक रुग्णालय."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/7045823769"
+    }
+  },
+  {
+    "id": "lele-hospital",
+    "name": {
+      "en": "Lele Hospital",
+      "hi": "लेले अस्पताल",
+      "mr": "लेले रुग्णालय"
+    },
+    "aliases": [
+      "lele hospital"
+    ],
+    "category": "hospital",
+    "lat": 20.00092,
+    "lng": 73.77245,
+    "area": "City",
+    "description": {
+      "en": "A hospital in City.",
+      "hi": "नासिक शहर में एक अस्पताल।",
+      "mr": "नाशिक शहर मधील एक रुग्णालय."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/7043617930"
+    }
+  },
+  {
+    "id": "arihant-hospital",
+    "name": {
+      "en": "Arihant Hospital",
+      "hi": "अरिहंत अस्पताल",
+      "mr": "अरिहंत रुग्णालय"
+    },
+    "aliases": [
+      "arihant hospital"
+    ],
+    "category": "hospital",
+    "lat": 19.98859,
+    "lng": 73.78464,
+    "area": "City",
+    "description": {
+      "en": "A hospital in City.",
+      "hi": "नासिक शहर में एक अस्पताल।",
+      "mr": "नाशिक शहर मधील एक रुग्णालय."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/7042991453"
+    }
+  },
+  {
+    "id": "ashoknagar-police-station",
+    "name": {
+      "en": "Ashoknagar Police Station",
+      "hi": "अशोकनगर पुलिस स्टेशन",
+      "mr": "अशोकनगर पोलीस ठाणे"
+    },
+    "aliases": [
+      "ashok nagar police",
+      "satpur police"
+    ],
+    "category": "police",
+    "lat": 19.98938,
+    "lng": 73.71381,
+    "area": "Satpur",
+    "description": {
+      "en": "A police station serving Satpur.",
+      "hi": "सातपुर क्षेत्र का पुलिस स्टेशन।",
+      "mr": "सातपूर भागाचे पोलीस ठाणे."
+    },
+    "open24x7": true,
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3348298397"
+    }
+  },
+  {
+    "id": "nehru-nagar-police-station",
+    "name": {
+      "en": "Nehru Nagar Police Station",
+      "hi": "नेहरू नगर पुलिस स्टेशन",
+      "mr": "नेहरू नगर पोलीस ठाणे"
+    },
+    "aliases": [
+      "nehru nagar police"
+    ],
+    "category": "police",
+    "lat": 19.96852,
+    "lng": 73.82533,
+    "area": "Nashik Road",
+    "description": {
+      "en": "A police station serving Nashik Road.",
+      "hi": "नासिक रोड क्षेत्र का पुलिस स्टेशन।",
+      "mr": "नाशिक रोड भागाचे पोलीस ठाणे."
+    },
+    "open24x7": true,
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/4358922473"
+    }
+  },
+  {
+    "id": "yogeshwar-medical",
+    "name": {
+      "en": "Yogeshwar Medical",
+      "hi": "योगेश्वर मेडिकल",
+      "mr": "योगेश्वर मेडिकल"
+    },
+    "aliases": [
+      "yogeshwar medical store"
+    ],
+    "category": "chemist",
+    "lat": 19.96147,
+    "lng": 73.74474,
+    "area": "Ambad",
+    "description": {
+      "en": "A medical store in Ambad.",
+      "hi": "अंबड में एक दवा की दुकान।",
+      "mr": "अंबड मधील औषध दुकान."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13546500312"
+    }
+  },
+  {
+    "id": "seva-medical-satpur",
+    "name": {
+      "en": "Seva Medical",
+      "hi": "सेवा मेडिकल",
+      "mr": "सेवा मेडिकल"
+    },
+    "aliases": [
+      "seva medical store"
+    ],
+    "category": "chemist",
+    "lat": 19.96893,
+    "lng": 73.72892,
+    "area": "Satpur",
+    "description": {
+      "en": "A medical store in Satpur.",
+      "hi": "सातपुर में एक दवा की दुकान।",
+      "mr": "सातपूर मधील औषध दुकान."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13541184951"
+    }
+  },
+  {
+    "id": "toilet-near-mela-bus-stand",
+    "name": {
+      "en": "Public Toilet near Mela Bus Stand",
+      "hi": "मेला बस स्टैंड के पास शौचालय",
+      "mr": "मेळा बस स्थानकाजवळ शौचालय"
+    },
+    "aliases": [
+      "mela stand toilet",
+      "sulabh"
+    ],
+    "category": "toilet",
+    "lat": 19.99451,
+    "lng": 73.77887,
+    "area": "City",
+    "description": {
+      "en": "Public toilet in City.",
+      "hi": "नासिक शहर में सार्वजनिक शौचालय।",
+      "mr": "नाशिक शहर मधील सार्वजनिक शौचालय."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/11373727719"
+    }
+  },
+  {
+    "id": "toilet-nashik-road-south",
+    "name": {
+      "en": "Public Toilet, Nashik Road (south)",
+      "hi": "सार्वजनिक शौचालय, नासिक रोड (दक्षिण)",
+      "mr": "सार्वजनिक शौचालय, नाशिक रोड (दक्षिण)"
+    },
+    "aliases": [
+      "nashik road toilet"
+    ],
+    "category": "toilet",
+    "lat": 19.9467,
+    "lng": 73.84364,
+    "area": "Nashik Road",
+    "description": {
+      "en": "Public toilet in Nashik Road.",
+      "hi": "नासिक रोड में सार्वजनिक शौचालय।",
+      "mr": "नाशिक रोड मधील सार्वजनिक शौचालय."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/14170162832"
+    }
+  },
+  {
+    "id": "water-nashik-road-south",
+    "name": {
+      "en": "Drinking Water, Nashik Road (south)",
+      "hi": "पीने का पानी, नासिक रोड (दक्षिण)",
+      "mr": "पिण्याचे पाणी, नाशिक रोड (दक्षिण)"
+    },
+    "aliases": [
+      "nashik road water",
+      "pani"
+    ],
+    "category": "water",
+    "lat": 19.94924,
+    "lng": 73.84249,
+    "area": "Nashik Road",
+    "description": {
+      "en": "Drinking water point in Nashik Road.",
+      "hi": "नासिक रोड में पीने के पानी की जगह।",
+      "mr": "नाशिक रोड मधील पिण्याच्या पाण्याची सोय."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13517529154"
+    }
+  },
+  {
+    "id": "hotel-panchvati",
+    "name": {
+      "en": "Panchvati Hotel",
+      "hi": "पंचवटी होटल",
+      "mr": "पंचवटी हॉटेल"
+    },
+    "aliases": [
+      "panchavati hotel"
+    ],
+    "category": "stay",
+    "lat": 20.00561,
+    "lng": 73.78579,
+    "area": "Panchavati",
+    "description": {
+      "en": "A hotel in Panchavati.",
+      "hi": "पंचवटी में एक होटल।",
+      "mr": "पंचवटी मधील हॉटेल."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/4071843004"
+    }
+  },
+  {
+    "id": "hotel-royal-heritage",
+    "name": {
+      "en": "Royal Heritage",
+      "hi": "रॉयल हेरिटेज",
+      "mr": "रॉयल हेरिटेज"
+    },
+    "aliases": [
+      "royal heritage hotel"
+    ],
+    "category": "stay",
+    "lat": 19.9979,
+    "lng": 73.786,
+    "area": "City",
+    "description": {
+      "en": "A hotel in City.",
+      "hi": "नासिक शहर में एक होटल।",
+      "mr": "नाशिक शहर मधील हॉटेल."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3996711391"
+    }
+  },
+  {
+    "id": "hotel-sri-jai-palace",
+    "name": {
+      "en": "Hotel Sri Jai Palace",
+      "hi": "होटल श्री जय पैलेस",
+      "mr": "हॉटेल श्री जय पॅलेस"
+    },
+    "aliases": [
+      "jai palace"
+    ],
+    "category": "stay",
+    "lat": 20.0046,
+    "lng": 73.80286,
+    "area": "Tapovan",
+    "description": {
+      "en": "A hotel in Tapovan.",
+      "hi": "तपोवन में एक होटल।",
+      "mr": "तपोवन मधील हॉटेल."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/1671916233"
+    }
+  },
+  {
+    "id": "hotel-dwarka",
+    "name": {
+      "en": "Hotel Dwarka",
+      "hi": "होटल द्वारका",
+      "mr": "हॉटेल द्वारका"
+    },
+    "aliases": [
+      "dwarka hotel"
+    ],
+    "category": "stay",
+    "lat": 19.99393,
+    "lng": 73.79784,
+    "area": "Dwarka",
+    "description": {
+      "en": "A hotel in Dwarka.",
+      "hi": "द्वारका में एक होटल।",
+      "mr": "द्वारका मधील हॉटेल."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/1671920721"
+    }
+  },
+  {
+    "id": "holiday-inn-express-nashik",
+    "name": {
+      "en": "Holiday Inn Express",
+      "hi": "हॉलिडे इन एक्सप्रेस",
+      "mr": "हॉलिडे इन एक्सप्रेस"
+    },
+    "aliases": [
+      "holiday inn"
+    ],
+    "category": "stay",
+    "lat": 19.97159,
+    "lng": 73.77481,
+    "area": "Mumbai Naka",
+    "description": {
+      "en": "A hotel in Mumbai Naka.",
+      "hi": "मुंबई नाका में एक होटल।",
+      "mr": "मुंबई नाका मधील हॉटेल."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13477059849"
+    }
+  },
+  {
+    "id": "hotel-dwarka-inn-trimbak",
+    "name": {
+      "en": "Hotel Dwarka Inn",
+      "hi": "होटल द्वारका इन",
+      "mr": "हॉटेल द्वारका इन"
+    },
+    "aliases": [
+      "dwarka inn trimbak"
+    ],
+    "category": "stay",
+    "lat": 19.94148,
+    "lng": 73.54171,
+    "area": "Trimbakeshwar",
+    "description": {
+      "en": "A hotel in Trimbakeshwar.",
+      "hi": "त्र्यंबकेश्वर में एक होटल।",
+      "mr": "त्र्यंबकेश्वर मधील हॉटेल."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/11907166497"
+    }
+  },
+  {
+    "id": "annapurna-restaurant",
+    "name": {
+      "en": "Annapurna",
+      "hi": "अन्नपूर्णा",
+      "mr": "अन्नपूर्णा"
+    },
+    "aliases": [
+      "annapurna hotel"
+    ],
+    "category": "food",
+    "lat": 20.00472,
+    "lng": 73.78521,
+    "area": "Panchavati",
+    "description": {
+      "en": "A restaurant in Panchavati.",
+      "hi": "पंचवटी में एक भोजनालय।",
+      "mr": "पंचवटी मधील उपाहारगृह."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/4846718926"
+    }
+  },
+  {
+    "id": "hotel-shiv-sagar-trimbak",
+    "name": {
+      "en": "Hotel Shiv Sagar",
+      "hi": "होटल शिव सागर",
+      "mr": "हॉटेल शिव सागर"
+    },
+    "aliases": [
+      "shivsagar trimbak"
+    ],
+    "category": "food",
+    "lat": 19.94014,
+    "lng": 73.53974,
+    "area": "Trimbakeshwar",
+    "description": {
+      "en": "A restaurant in Trimbakeshwar.",
+      "hi": "त्र्यंबकेश्वर में एक भोजनालय।",
+      "mr": "त्र्यंबकेश्वर मधील उपाहारगृह."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/11907132364"
+    }
+  },
+  {
+    "id": "hotel-zakkas-pure-veg",
+    "name": {
+      "en": "Hotel Zakkas Pure Veg",
+      "hi": "होटल झक्कास प्योर वेज",
+      "mr": "हॉटेल झक्कास प्युअर व्हेज"
+    },
+    "aliases": [
+      "zakkas"
+    ],
+    "category": "food",
+    "lat": 20.03179,
+    "lng": 73.8136,
+    "area": "Upnagar",
+    "description": {
+      "en": "A restaurant in Upnagar.",
+      "hi": "उपनगर में एक भोजनालय।",
+      "mr": "उपनगर मधील उपाहारगृह."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/way/574967028"
+    }
+  },
+  {
+    "id": "maharashtra-darbar",
+    "name": {
+      "en": "Maharashtra Darbar",
+      "hi": "महाराष्ट्र दरबार",
+      "mr": "महाराष्ट्र दरबार"
+    },
+    "aliases": [
+      "maharashtra darbar thali"
+    ],
+    "category": "food",
+    "lat": 19.98991,
+    "lng": 73.72404,
+    "area": "Satpur",
+    "description": {
+      "en": "A restaurant in Satpur.",
+      "hi": "सातपुर में एक भोजनालय।",
+      "mr": "सातपूर मधील उपाहारगृह."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/11416658232"
+    }
+  },
+  {
+    "id": "mangoville-misal",
+    "name": {
+      "en": "Mangoville Misal",
+      "hi": "मैंगोविल मिसल",
+      "mr": "मँगोव्हिल मिसळ"
+    },
+    "aliases": [
+      "mangoville",
+      "misal gangapur"
+    ],
+    "category": "food",
+    "lat": 20.02076,
+    "lng": 73.74085,
+    "area": "Gangapur Road",
+    "description": {
+      "en": "A restaurant in Gangapur Road.",
+      "hi": "गंगापुर रोड में एक भोजनालय।",
+      "mr": "गंगापूर रोड मधील उपाहारगृह."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/11618147517"
+    }
+  },
+  {
+    "id": "kaka-ka-dhaba",
+    "name": {
+      "en": "Kaka Ka Dhaba",
+      "hi": "काका का ढाबा",
+      "mr": "काका का ढाबा"
+    },
+    "aliases": [
+      "kaka dhaba"
+    ],
+    "category": "food",
+    "lat": 19.97313,
+    "lng": 73.77473,
+    "area": "Mumbai Naka",
+    "description": {
+      "en": "A restaurant in Mumbai Naka.",
+      "hi": "मुंबई नाका में एक भोजनालय।",
+      "mr": "मुंबई नाका मधील उपाहारगृह."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13477059851"
     }
   }
 ]

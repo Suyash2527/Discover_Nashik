@@ -82,6 +82,20 @@ export function ParkingIcon({ size = 24, ...p }: IconProps) {
   );
 }
 
+export function TransportIcon({ size = 24, ...p }: IconProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      {/* Bus front */}
+      <rect x="5" y="3" width="14" height="15" rx="2.5" />
+      <line x1="5" y1="11" x2="19" y2="11" />
+      <circle cx="8.5" cy="14.5" r="0.6" />
+      <circle cx="15.5" cy="14.5" r="0.6" />
+      <line x1="7.5" y1="18" x2="7.5" y2="21" />
+      <line x1="16.5" y1="18" x2="16.5" y2="21" />
+    </svg>
+  );
+}
+
 export function HospitalIcon({ size = 24, ...p }: IconProps) {
   return (
     <svg {...base(size)} {...p}>
@@ -252,6 +266,7 @@ export function CategoryIcon({ category, size = 24 }: { category: string; size?:
     case "food":     return <FoodIcon {...props} />;
     case "stay":     return <StayIcon {...props} />;
     case "parking":  return <ParkingIcon {...props} />;
+    case "transport": return <TransportIcon {...props} />;
     case "hospital": return <HospitalIcon {...props} />;
     case "police":   return <PoliceIcon {...props} />;
     case "toilet":   return <ToiletIcon {...props} />;
@@ -264,16 +279,18 @@ export function CategoryIcon({ category, size = 24 }: { category: string; size?:
 /** Returns the hex color for a category */
 export function categoryColor(category: string): string {
   const map: Record<string, string> = {
-    temple:   "#EA580C",
-    ghat:     "#0284C7",
-    food:     "#CA8A04",
-    stay:     "#7C3AED",
-    parking:  "#475569",
-    hospital: "#16A34A",
-    police:   "#1D4ED8",
-    toilet:   "#0D9488",
-    water:    "#0EA5E9",
-    chemist:  "#DB2777",
+    // Earth pigments — distinguishable on a map, quiet next to the paper UI.
+    temple:   "#B4471B", // sindoor
+    ghat:     "#1F5B78", // Godavari
+    food:     "#9A7414", // haldi, darkened for white icons
+    stay:     "#5E4B7C",
+    parking:  "#5A6068",
+    transport: "#B0521F", // ST-bus orange
+    hospital: "#2F6B45",
+    police:   "#2B3D6E",
+    toilet:   "#3E7370",
+    water:    "#3B7EA1",
+    chemist:  "#8E3A5C",
   };
-  return map[category] ?? "#475569";
+  return map[category] ?? "#5A6068";
 }

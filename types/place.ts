@@ -1,10 +1,10 @@
 // LOCKED CONTRACT — do not edit without team agreement.
 export type Category =
-  | "temple" | "ghat" | "stay" | "food" | "parking"
+  | "temple" | "ghat" | "stay" | "food" | "parking" | "transport"
   | "hospital" | "police" | "toilet" | "water" | "chemist";
 
 export const CATEGORIES: Category[] = [
-  "temple", "ghat", "stay", "food", "parking",
+  "temple", "ghat", "stay", "food", "parking", "transport",
   "hospital", "police", "toilet", "water", "chemist",
 ];
 
