@@ -1,12 +1,29 @@
 // POST /api/ask — AskRequest -> AskResponse.
 //
-// Retrieval is always local. Gemini only gets to *phrase* the answer, and only
-// if it replies within GEMINI_TIMEOUT_MS; otherwise the offline templates win.
-// A pilgrim standing in a crowd never waits more than ~2.5 s.
+// Retrieval is always local and always runs first. What changes is what Gemini
+// is then allowed to do with the result:
+//
+//   grounded — retrieval found a place the pilgrim named. Gemini may use
+//              NOTHING but those places (unchanged behaviour).
+//   general  — retrieval found nothing, or only a category word on an
+//              advice-shaped question. Gemini answers as a Kumbh/Nashik
+//              assistant from its own knowledge, but still may not invent
+//              place names, addresses or phone numbers.
+//
+// Either way Gemini gets GEMINI_TIMEOUT_MS to reply, else we degrade offline:
+// grounded falls back to the local templates, general to an honest
+// "needs a connection" line. A pilgrim in a crowd never waits more than ~2.5 s.
 import type { NextRequest } from "next/server";
-import { answerWithGemini, isGeminiConfigured } from "@/lib/gemini";
+import {
+  answerGeneralWithGemini,
+  answerWithGemini,
+  classifyAnswerMode,
+  generalOfflineAnswer,
+  isGeminiConfigured,
+  type AnswerMode,
+} from "@/lib/gemini";
 import { answerOffline } from "@/lib/intent-offline";
-import { retrieve } from "@/lib/rag";
+import { retrieveScored } from "@/lib/rag";
 import { normalize } from "@/lib/text";
 import type { AskRequest, AskResponse, Lang, Place } from "@/types";
 
@@ -82,6 +99,53 @@ function referencedPlaceIds(answer: string, places: Place[]): string[] {
   return (mentioned.length ? mentioned.map((m) => m.place) : places).map((p) => p.id);
 }
 
+/**
+ * Places the answer text actually names — no padding.
+ *
+ * referencedPlaceIds() deliberately falls back to "all retrieved" so a grounded
+ * answer always lights up the map. That fallback is wrong in general mode: a
+ * reply about crowd safety would pin whatever a category word happened to
+ * match, sending the pilgrim to an unrelated pin.
+ */
+function mentionedPlaceIds(answer: string, places: Place[]): string[] {
+  const haystack = ` ${normalize(answer)} `;
+  return places
+    .filter((place) =>
+      [place.name.en, place.name.hi, place.name.mr, ...place.aliases].some((n) => {
+        const needle = normalize(n);
+        return needle.length >= 3 && haystack.includes(needle);
+      }),
+    )
+    .map((p) => p.id);
+}
+
+function placeIdsFor(mode: AnswerMode, answer: string, places: Place[]): string[] {
+  return mode === "grounded"
+    ? referencedPlaceIds(answer, places)
+    : mentionedPlaceIds(answer, places);
+}
+
+/**
+ * Offline degradation, per mode.
+ *
+ * Grounded keeps the local distance/timings templates — those are genuinely
+ * useful with no network. General has nothing to template from (the question
+ * was not about a place), so it says so plainly instead of returning the
+ * "not in my offline list" line, which would be a non-sequitur.
+ */
+function offlineAnswer(
+  mode: AnswerMode,
+  query: string,
+  lang: Lang,
+  places: Place[],
+  origin?: { lat: number; lng: number },
+): string {
+  if (mode === "grounded" && places.length > 0) {
+    return answerOffline(query, lang, places, origin);
+  }
+  return generalOfflineAnswer(lang);
+}
+
 export async function POST(request: NextRequest) {
   let raw: unknown;
   try {
@@ -96,26 +160,36 @@ export async function POST(request: NextRequest) {
   const { query, lang, lat, lng } = parsed;
   const origin = lat !== undefined && lng !== undefined ? { lat, lng } : undefined;
 
-  const places = retrieve(query, lang);
+  const scored = retrieveScored(query, lang);
+  const places = scored.map((s) => s.place);
+  const mode = classifyAnswerMode(query, scored[0]?.score ?? 0);
 
   let answer: string;
   let source: AskResponse["source"] = "offline";
 
-  if (places.length && isGeminiConfigured()) {
+  if (isGeminiConfigured()) {
     try {
-      answer = await withTimeout(answerWithGemini(query, lang, places), GEMINI_TIMEOUT_MS);
+      answer = await withTimeout(
+        mode === "grounded"
+          ? answerWithGemini(query, lang, places)
+          : answerGeneralWithGemini(query, lang, places),
+        GEMINI_TIMEOUT_MS,
+      );
       source = "gemini";
     } catch (error) {
-      console.warn("[api/ask] Gemini unavailable, answering offline:", (error as Error).message);
-      answer = answerOffline(query, lang, places, origin);
+      console.warn(
+        `[api/ask] Gemini unavailable (${mode}), answering offline:`,
+        (error as Error).message,
+      );
+      answer = offlineAnswer(mode, query, lang, places, origin);
     }
   } else {
-    answer = answerOffline(query, lang, places, origin);
+    answer = offlineAnswer(mode, query, lang, places, origin);
   }
 
   const response: AskResponse = {
     answer,
-    placeIds: referencedPlaceIds(answer, places),
+    placeIds: placeIdsFor(mode, answer, places),
     source,
   };
   return Response.json(response);
