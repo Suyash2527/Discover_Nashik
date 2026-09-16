@@ -26,6 +26,13 @@ const CASES: Case[] = [
   { query: "पास में पुलिस स्टेशन", lang: "hi-IN", note: "police category, hi", ...ORIGIN },
   { query: "औषध दुकान", lang: "mr-IN", note: "chemist category, mr" },
   { query: "godavari ghat", lang: "en-IN", note: "ghat category + river alias" },
+  { query: "kushavart", lang: "en-IN", note: "Trimbak holy tank, short spelling" },
+  { query: "sadhana misal", lang: "en-IN", note: "famous food spot" },
+  { query: "budha halwai jalebi", lang: "en-IN", note: "famous sweet shop" },
+  { query: "sita gumpha", lang: "en-IN", note: "Marathi-style spelling of Sita Gufa" },
+  { query: "मुक्तिधाम", lang: "hi-IN", note: "Devanagari name, hi" },
+  { query: "trimbak bus stand", lang: "en-IN", note: "transport hub listed under parking" },
+  { query: "pandav leni", lang: "en-IN", note: "split spelling of Pandavleni" },
   { query: "xyzzy plutonium mines", lang: "en-IN", note: "no match — must degrade gracefully" },
 ];
 

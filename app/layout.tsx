@@ -1,40 +1,39 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Mukta, Tiro_Devanagari_Marathi } from "next/font/google";
 import "./globals.css";
-import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const mukta = Mukta({
+  variable: "--font-mukta",
+  subsets: ["devanagari", "latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const tiro = Tiro_Devanagari_Marathi({
+  variable: "--font-tiro",
+  subsets: ["devanagari", "latin"],
+  weight: "400",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Discover Nashik — Kumbh Mela Companion",
-  description: "Map-first companion for Kumbh pilgrims in Nashik. Offline-ready maps, places, emergency info and voice guide.",
+  title: "Discover Nashik — Kumbh Pilgrim Companion",
+  description:
+    "Map-first voice guide for Nashik Kumbh pilgrims. Find temples, ghats, food, hospitals and more — in Marathi, Hindi or English.",
+  keywords: ["Nashik", "Kumbh", "pilgrimage", "temples", "ghats", "Panchavati"],
   manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
   width: "device-width",
   initialScale: 1,
+  themeColor: "#7B1B2A",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <ServiceWorkerRegister />
-        {children}
-      </body>
+    <html lang="en" className={`${mukta.variable} ${tiro.variable} h-full`}>
+      <body className="h-full overflow-hidden">{children}</body>
     </html>
   );
 }

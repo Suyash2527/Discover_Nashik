@@ -1,55 +1,109 @@
 @import "tailwindcss";
 
+/*
+ * Discover Nashik — "Kumbh".
+ * Saffron and temple maroon on warm cream. Large type and strong contrast so
+ * it reads in sunlight; red is kept for emergencies only.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper:   #FFF6EA;
+  --paper-2: #FBE9D3;
+  --card:    #FFFFFF;
+  --ink:     #2A170F;
+  --ink-2:   #4B2F22;
+  --muted:   #6E5242;
+  --rule:    #EFD6B8;
+  --haldi:   #E26A12; /* saffron */
+  --maroon:  #7B1B2A;
+  --kumkum:  #C4202A;
+  --river:   #1F5B78;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper:   var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-card:    var(--card);
+  --color-ink:     var(--ink);
+  --color-ink-2:   var(--ink-2);
+  --color-muted:   var(--muted);
+  --color-rule:    var(--rule);
+  --color-haldi:   var(--haldi);
+  --color-maroon:  var(--maroon);
+  --color-kumkum:  var(--kumkum);
+  --color-river:   var(--river);
+  --font-sans:     var(--font-mukta), system-ui, sans-serif;
+  --font-display:  var(--font-tiro), Georgia, serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mukta), system-ui, sans-serif;
+  font-size: 18px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.hide-scrollbar { scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* Small caps label used for kickers ("TEMPLE · PANCHAVATI") */
+.kicker {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
+/* ─── Motion (kept short and physical) ─────────────────────────────── */
+@keyframes rise {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
 }
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.rise { animation: rise 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes ripple {
+  from { transform: scale(1); opacity: 0.45; }
+  to   { transform: scale(1.7); opacity: 0; }
+}
+.mic-ring::before,
+.mic-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--haldi);
+  animation: ripple 1.6s ease-out infinite;
+}
+.mic-ring::after { animation-delay: 0.8s; }
+
+@keyframes bar {
+  0%, 100% { transform: scaleY(0.35); }
+  50%      { transform: scaleY(1); }
+}
+.bars span { display: inline-block; width: 3px; height: 14px; background: currentColor; transform-origin: bottom; animation: bar 0.9s ease-in-out infinite; }
+.bars span:nth-child(2) { animation-delay: 0.15s; }
+.bars span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes locate {
+  from { box-shadow: 0 0 0 0 rgba(31, 91, 120, 0.5); }
+  to   { box-shadow: 0 0 0 14px rgba(31, 91, 120, 0); }
+}
+.user-dot { animation: locate 2s ease-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .mic-ring::before, .mic-ring::after, .bars span, .user-dot { animation: none !important; }
 }
 
-@keyframes popIn {
-  0% { transform: scale(0); opacity: 0; }
-  60% { transform: scale(1.15); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.marker-pop-in {
-  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-@keyframes highlightPulse {
-  0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); transform: scale(1); }
-  50% { box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); transform: scale(1.1); }
-  100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); transform: scale(1); }
-}
-
-.marker-highlight {
-  animation: highlightPulse 2s infinite;
-  z-index: 1000 !important;
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }

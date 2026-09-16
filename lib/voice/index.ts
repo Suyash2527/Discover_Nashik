@@ -43,6 +43,8 @@ import { correctTranscript } from "./stt-corrections";
 import { cancelSpeech, shouldUseExternalVoice, speak } from "./tts";
 import { retrieveScored } from "../rag";
 import { answerOffline, generalOfflineAnswer } from "../intent-offline";
+import { MAX_HISTORY_TURNS, type HistoryTurn } from "../history";
+import { factText, OFFLINE_FACT_SCORE, retrieveKnowledgeScored } from "../knowledge";
 
 const DEFAULT_LANG: Lang = "mr-IN";
 
@@ -50,6 +52,10 @@ const DEFAULT_LANG: Lang = "mr-IN";
  *  recogniser and record for Sarvam instead. Two, not one: a single no-speech
  *  is usually just a pilgrim who tapped the mic before they were ready. */
 const NO_SPEECH_LIMIT = 2;
+
+/** Forget the conversation after this long without a question: an "it" from
+ *  twenty minutes ago is more likely to mislead than to help. */
+const HISTORY_TTL_MS = 10 * 60 * 1000;
 
 /** Recogniser failures that are the user's environment, not a bug. */
 const ERROR_MESSAGES: Record<string, Record<"en" | "hi" | "mr", string>> = {
@@ -131,6 +137,8 @@ export function useVoiceAssistant(): VoiceAssistant {
   const noSpeechStreakRef = useRef(0);
   /** Live Sarvam recording, so stop() can end it. */
   const recordingRef = useRef<RecordingHandle | null>(null);
+  /** Recent question/answer turns, sent to /api/ask so follow-ups resolve. */
+  const historyRef = useRef<{ turns: HistoryTurn[]; at: number }>({ turns: [], at: 0 });
 
   useEffect(() => {
     langRef.current = lang;
@@ -208,9 +216,13 @@ export function useVoiceAssistant(): VoiceAssistant {
         const places = scored.map((s) => s.place);
         const topScore = scored[0]?.score ?? 0;
         const isGrounded = topScore > 0;
+        const best = isGrounded ? undefined : retrieveKnowledgeScored(query, 1)[0];
+        const fact = best && best.score >= OFFLINE_FACT_SCORE ? best.fact : undefined;
         const ans = isGrounded && places.length > 0
           ? answerOffline(query, activeLang, places, here ?? undefined)
-          : generalOfflineAnswer(activeLang);
+          : fact
+            ? factText(fact, activeLang)
+            : generalOfflineAnswer(activeLang);
 
         return {
           answer: ans,
@@ -226,10 +238,15 @@ export function useVoiceAssistant(): VoiceAssistant {
         result = getOfflineAnswer();
       } else {
         try {
-          const body: AskRequest = {
+          // `history` is an optional extension the route accepts on top of the
+          // locked AskRequest contract — see app/api/ask/route.ts.
+          const history = historyRef.current;
+          if (Date.now() - history.at > HISTORY_TTL_MS) history.turns = [];
+          const body: AskRequest & { history?: HistoryTurn[] } = {
             query,
             lang: activeLang,
             ...(here && { lat: here.lat, lng: here.lng }),
+            ...(history.turns.length > 0 && { history: history.turns }),
           };
           const response = await fetch("/api/ask", {
             method: "POST",
@@ -245,6 +262,15 @@ export function useVoiceAssistant(): VoiceAssistant {
       }
 
       if (!mountedRef.current) return;
+
+      historyRef.current = {
+        turns: [
+          ...historyRef.current.turns,
+          { role: "user" as const, text: query },
+          { role: "assistant" as const, text: result.answer },
+        ].slice(-MAX_HISTORY_TURNS),
+        at: Date.now(),
+      };
 
       setAnswer(result.answer);
       setPlaceIds(result.placeIds ?? []);

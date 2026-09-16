@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { CATEGORIES, type Place } from "../types";
 
 const places: Place[] = JSON.parse(readFileSync("data/places.json", "utf8"));
-const BBOX = { minLat: 19.8, maxLat: 20.1, minLng: 73.4, maxLng: 73.95 };
+const BBOX = { minLat: 19.8, maxLat: 20.13, minLng: 73.4, maxLng: 73.95 };
 const errors: string[] = [];
 const warnings: string[] = [];
 const seen = new Set<string>();

@@ -25,6 +25,14 @@ function check(label: string, ok: boolean, detail = "") {
 /** Nashik CBS bus stand — where a pilgrim arriving by road actually stands. */
 const CBS = { lat: 19.9975, lng: 73.7898 };
 
+/**
+ * A spot on the Panchavati approach ~0.5 km south of Ramkund. The metre-format
+ * checks used to measure from CBS, but the OSM-verified Ramkund coordinates
+ * (data expansion, abf2392) put CBS 1.1 km away — so they need a genuinely
+ * sub-kilometre origin.
+ */
+const NEAR_RAMKUND = { lat: 20.0035, lng: 73.7905 };
+
 // ---------------------------------------------------------------------------
 console.log("Distance intent is recognised in all three languages");
 // ---------------------------------------------------------------------------
@@ -87,7 +95,7 @@ if (ramkund) {
   // CBS to Ramkund is a little under a kilometre in a straight line.
   check(`CBS -> Ramkund is 0.5-1.5 km (got ${km.toFixed(2)})`, km > 0.5 && km < 1.5);
 
-  const near = formatDistanceKm(km);
+  const near = formatDistanceKm(haversineKm(NEAR_RAMKUND, ramkund));
   check(`sub-kilometre formats as metres (got ${near.value} ${near.unit})`, near.unit === "m");
   check("metres are rounded to a speakable 10", near.value % 10 === 0);
 
@@ -144,7 +152,7 @@ const OFFLINE: Array<{ query: string; lang: Lang; unit: string; lead: string }> 
 ];
 for (const { query, lang, unit, lead } of OFFLINE) {
   const places = retrieveScored(query, lang).map((s) => s.place);
-  const withFix = answerOffline(query, lang, places, CBS);
+  const withFix = answerOffline(query, lang, places, NEAR_RAMKUND);
   const without = answerOffline(query, lang, places);
 
   console.log(`  [${lang}] ${withFix}`);

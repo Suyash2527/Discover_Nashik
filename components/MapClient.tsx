@@ -1,282 +1,548 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { APIProvider, Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
 import { Place, CATEGORIES, Category } from "@/types/place";
-import VoiceButton from "./VoiceButton";
+import type { Lang } from "@/types/voice";
+import { useVoiceAssistant } from "@/lib/voice";
+import { formatDistanceKm, haversineKm, type LatLng } from "@/lib/geo";
+import { CategoryIcon, categoryColor, SearchIcon, LocateIcon, XIcon } from "./icons";
+import { CATEGORY_LABEL, LANGS, loc, pick, placeName } from "./copy";
+import VoicePanel from "./VoicePanel";
+import MicFab from "./MicFab";
+import PlaceSheet from "./PlaceSheet";
+import SosSheet from "./SosSheet";
+import HintOverlay from "./HintOverlay";
+import AdvisoryBanner, { SEVERITY_COLOR, useActiveAdvisories } from "./AdvisoryBanner";
+import type { Severity } from "@/types/advisory";
 
-const getCategorySvg = (category: string) => {
-  switch (category) {
-    case "temple":
-      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>;
-    case "hospital":
-      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20"/></svg>;
-    case "food":
-      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>;
-    case "stay":
-      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
-    case "ghat":
-      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6c.6 0 1.2-.2 1.8-.6.6-.4 1.2-.4 1.8 0 .6.4 1.2.6 1.8.6.6 0 1.2-.2 1.8-.6.6-.4 1.2-.4 1.8 0 .6.4 1.2.6 1.8.6.6 0 1.2-.2 1.8-.6.6-.4 1.2-.4 1.8 0 .6.4 1.2.6 1.8.6"/><path d="M2 12c.6 0 1.2-.2 1.8-.6.6-.4 1.2-.4 1.8 0 .6.4 1.2.6 1.8.6.6 0 1.2-.2 1.8-.6.6-.4 1.2-.4 1.8 0 .6.4 1.2.6 1.8.6"/><path d="M2 18c.6 0 1.2-.2 1.8-.6.6-.4 1.2-.4 1.8 0 .6.4 1.2.6 1.8.6.6 0 1.2-.2 1.8-.6.6-.4 1.2-.4 1.8 0 .6.4 1.2.6 1.8.6"/></svg>;
-    case "parking":
-      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg>;
-    default:
-      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
-  }
-};
+const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
+const NASHIK_CENTER = { lat: 20.0059, lng: 73.791 };
 
-const getCategoryColor = (category: string) => {
-  if (["temple", "ghat", "stay"].includes(category)) return "#E8740C"; // Saffron
-  if (["hospital", "police", "chemist"].includes(category)) return "#DC2626"; // Red
-  if (["food", "water", "toilet"].includes(category)) return "#16A34A"; // Green
-  return "#1E3A8A"; // Deep Blue
-};
-
-// Marker component styling
-const PlaceMarker = ({ category, isHighlighted }: { category: string, isHighlighted: boolean }) => {
-  const bgColor = getCategoryColor(category);
-  const sizeClass = isHighlighted ? 'w-14 h-14' : 'w-10 h-10';
-  const highlightClass = isHighlighted ? 'marker-highlight' : '';
-
+// ─── Map pieces ────────────────────────────────────────────────────────────
+function Pin({ category, active, alert }: { category: Category; active: boolean; alert?: Severity }) {
+  const size = active ? 40 : 28;
   return (
-    <div 
-      className={`marker-pop-in ${highlightClass} ${sizeClass} flex items-center justify-center text-white rounded-full border-[3px] border-white transition-all duration-300 shadow-lg`} 
+    <div
+      className="relative flex items-center justify-center rounded-full text-white transition-all duration-150"
       style={{
-        backgroundColor: bgColor,
-        transform: 'translate(-50%, -50%)'
+        width: size,
+        height: size,
+        backgroundColor: categoryColor(category),
+        border: `2px solid ${active ? "#1D1915" : "#FBF8F2"}`,
+        boxShadow: active ? "0 0 0 3px #FBF8F2, 0 4px 10px rgba(29,25,21,.35)" : "0 1px 3px rgba(29,25,21,.35)",
+        transform: "translate(0, 50%)",
       }}
     >
-      <div className={isHighlighted ? "scale-110 transition-transform" : "scale-75 transition-transform"}>
-        {getCategorySvg(category)}
-      </div>
+      <CategoryIcon category={category} size={active ? 21 : 15} />
+      {alert && (
+        <span
+          aria-label={`advisory: ${alert}`}
+          className="absolute -top-2 -right-2 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-white text-[11px] leading-none font-bold text-white shadow"
+          style={{ backgroundColor: SEVERITY_COLOR[alert] }}
+        >
+          !
+        </span>
+      )}
     </div>
   );
-};
+}
 
-function MapController({ highlightedPlaceIds, places, setMapReady }: { highlightedPlaceIds: string[], places: Place[], setMapReady: (ready: boolean) => void }) {
+function MapController({ focus, places, userPos, onReady, results, resultsKey }: {
+  focus: string[]; places: Place[]; userPos: LatLng | null; onReady: () => void;
+  /** Places matching the active filter/search; the map zooms to show them. */
+  results: Place[]; resultsKey: string;
+}) {
   const map = useMap();
 
   useEffect(() => {
-    if (map) setMapReady(true);
-  }, [map, setMapReady]);
+    if (!map || !resultsKey || results.length === 0) return;
+    // Wait for typing to settle before moving the map.
+    const t = setTimeout(() => {
+      if (results.length === 1) { map.panTo(results[0]); map.setZoom(16); return; }
+      const b = new google.maps.LatLngBounds();
+      results.forEach((p) => b.extend(p));
+      map.fitBounds(b, 48);
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, resultsKey]);
 
   useEffect(() => {
-    if (!map || highlightedPlaceIds.length === 0) return;
+    if (!map) return;
+    onReady();
+    // Open on the city core. Fitting every place pulls in Trimbakeshwar (~30 km)
+    // and collapses the Panchavati pins into one unreadable clump.
+    const b = new google.maps.LatLngBounds();
+    places.filter((p) => haversineKm(NASHIK_CENTER, p) <= 6).forEach((p) => b.extend(p));
+    if (b.isEmpty()) map.setCenter(NASHIK_CENTER);
+    else map.fitBounds(b, 32);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map]);
 
-    const highlightedPlaces = places.filter(p => highlightedPlaceIds.includes(p.id));
-    
-    if (highlightedPlaces.length === 1) {
-      map.panTo({ lat: highlightedPlaces[0].lat, lng: highlightedPlaces[0].lng });
+  useEffect(() => {
+    if (!map || focus.length === 0) return;
+    const targets = places.filter((p) => focus.includes(p.id));
+    if (targets.length === 1) {
+      map.panTo(targets[0]);
       map.setZoom(16);
-    } else if (highlightedPlaces.length > 1) {
-      const bounds = new google.maps.LatLngBounds();
-      highlightedPlaces.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
-      map.fitBounds(bounds, { top: 50, bottom: 150, left: 50, right: 50 });
+    } else if (targets.length > 1) {
+      const b = new google.maps.LatLngBounds();
+      targets.forEach((p) => b.extend(p));
+      map.fitBounds(b, 60);
     }
-  }, [highlightedPlaceIds, map, places]);
+  }, [focus, map, places]);
+
+  useEffect(() => {
+    if (!map || !userPos) return;
+    map.panTo(userPos);
+    map.setZoom(15);
+  }, [userPos, map]);
 
   return null;
 }
 
-export default function MapClient({ places }: { places: Place[] }) {
-  const [selectedCats, setSelectedCats] = useState<Set<Category>>(new Set(CATEGORIES));
-  const [search, setSearch] = useState("");
-  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
-  const [highlightedPlaceIds, setHighlightedPlaceIds] = useState<string[]>([]);
-  const [mapReady, setMapReady] = useState(false);
-  
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyAtyRi3sk9kJTus_1RJkJqQu7FgH0DoRgY";
+const FILTER_ORDER: Category[] = ["transport", ...CATEGORIES.filter((c) => c !== "transport")];
 
-  const filteredPlaces = useMemo(() => {
-    return places.filter(p => {
-      if (highlightedPlaceIds.includes(p.id)) return true;
-      if (!selectedCats.has(p.category)) return false;
-      if (!search.trim()) return true;
-      const q = search.toLowerCase();
-      return (
-        p.name.en.toLowerCase().includes(q) ||
-        p.name.hi.toLowerCase().includes(q) ||
-        p.name.mr.toLowerCase().includes(q) ||
-        p.aliases.some(a => a.toLowerCase().includes(q))
-      );
-    });
-  }, [places, selectedCats, search, highlightedPlaceIds]);
+/** Words that find a whole category from the search box ("bus", "train", "auto", "दवाई"…). */
+const CATEGORY_WORDS: Partial<Record<Category, string[]>> = {
+  transport: ["bus", "stop", "stand", "station", "railway", "train", "rail", "airport", "flight", "auto", "rickshaw", "taxi", "depot", "citilinc", "st", "बस", "स्टेशन", "रेलवे", "रेल्वे", "ट्रेन", "रिक्षा", "रिक्शा", "ऑटो", "विमानतळ", "हवाई"],
+  hospital: ["hospital", "doctor", "clinic", "अस्पताल", "रुग्णालय", "दवाखाना"],
+  police:   ["police", "पुलिस", "पोलीस"],
+  toilet:   ["toilet", "washroom", "bathroom", "शौचालय"],
+  water:    ["water", "पानी", "पाणी"],
+  chemist:  ["chemist", "medical", "pharmacy", "medicine", "दवाई", "औषध"],
+  food:     ["food", "restaurant", "eat", "भोजन", "जेवण"],
+  stay:     ["hotel", "stay", "lodge", "room", "dharamshala", "होटल", "हॉटेल"],
+  parking:  ["parking", "पार्किंग", "वाहनतळ"],
+  temple:   ["temple", "mandir", "मंदिर"],
+  ghat:     ["ghat", "kund", "घाट", "कुंड"],
+};
 
-  const toggleCat = (cat: Category) => {
-    const next = new Set(selectedCats);
-    if (next.has(cat)) next.delete(cat);
-    else next.add(cat);
-    setSelectedCats(next);
-  };
+/** Every word the user typed must match the place somewhere, so "nashik road station" works. */
+function matchesQuery(p: Place, q: string): boolean {
+  const hay = [p.name.en, p.name.hi, p.name.mr, p.area, ...p.aliases].join(" ").toLowerCase();
+  const catWords = CATEGORY_WORDS[p.category] ?? [];
+  return q.split(/\s+/).every((w) => hay.includes(w) || catWords.some((c) => c.startsWith(w) && w.length >= 2));
+}
 
+/**
+ * How well a place answers the query, higher first: the words in its own name beat
+ * the words only in its aliases, which beat a bare category hit ("stop" → any transport).
+ */
+function matchScore(p: Place, q: string): number {
+  const words = q.split(/\s+/).filter(Boolean);
+  const name = [p.name.en, p.name.hi, p.name.mr].join(" ").toLowerCase();
+  const text = [name, p.area, ...p.aliases].join(" ").toLowerCase();
+  const catWords = CATEGORY_WORDS[p.category] ?? [];
+  let score = 0;
+  for (const w of words) {
+    if (name.includes(w)) score += 10;
+    else if (text.includes(w)) score += 4;
+    else score += 1;
+  }
+  // The query names this kind of place ("station" → transport, not a toilet *at* the station).
+  if (words.some((w) => w.length >= 3 && catWords.some((c) => c.startsWith(w)))) score += 25;
+  if (p.name.en.toLowerCase().startsWith(words[0] ?? "")) score += 15;
+  // Among equals, the shorter (more specific) name wins.
+  return score - p.name.en.length / 10;
+}
+
+/** City bus stops are many and small: only show them when the user is looking for transport. */
+const isMinorStop = (p: Place) => p.id.startsWith("bus-stop-");
+
+// ─── Chrome ────────────────────────────────────────────────────────────────
+function Masthead({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
   return (
-    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#FFF8EE] flex flex-col lg:flex-row">
-      
-      {/* Left Panel (Desktop) / Top Area (Mobile) */}
-      <div className="w-full lg:w-[420px] flex flex-col z-10 shrink-0 shadow-2xl bg-[#FFF8EE] lg:h-full pb-2">
-        
-        {/* Top Bar (Deep Blue) */}
-        <div className="bg-[#1E3A8A] text-white p-4 flex justify-between items-center shadow-md">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white text-[#1E3A8A] flex items-center justify-center font-black">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">Discover Nashik</h1>
-          </div>
-          <div className="flex bg-[#172554] rounded-full p-1 border border-blue-800">
-             <span className="px-3 py-1.5 text-base font-semibold rounded-full bg-[#1E3A8A] text-white">मराठी</span>
-             <span className="px-3 py-1.5 text-base font-semibold text-blue-200">हिंदी</span>
-             <span className="px-3 py-1.5 text-base font-semibold text-blue-200">En</span>
-          </div>
-        </div>
-
-        <div className="p-4 flex flex-col gap-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-500">
-               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            </div>
-            <input 
-              type="text" 
-              placeholder="Search places..." 
-              className="w-full bg-white pl-12 pr-12 py-4 rounded-[20px] shadow-sm border-2 border-gray-100 text-[#1F1A14] focus:outline-none focus:border-[#E8740C] transition-colors text-lg font-medium"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <div className="absolute inset-y-0 right-4 flex items-center text-[#E8740C] pointer-events-none">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-            </div>
-          </div>
-          
-          {/* Categories */}
-          <div className="flex gap-4 overflow-x-auto pb-2 snap-x hide-scrollbar">
-            {CATEGORIES.map(cat => {
-              const isActive = selectedCats.has(cat);
-              const color = getCategoryColor(cat);
-              return (
-                <button 
-                  key={cat}
-                  onClick={() => toggleCat(cat)}
-                  className={`flex flex-col items-center gap-2 shrink-0 snap-start transition-all ${isActive ? 'opacity-100' : 'opacity-70 grayscale-[50%]'}`}
-                  style={{ minWidth: '72px' }}
-                >
-                  <div 
-                    className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all shadow-md active:scale-95 ${isActive ? 'text-white' : 'bg-white border-2'}`}
-                    style={isActive ? { backgroundColor: color } : { borderColor: color, color: color }}
-                  >
-                    <div className="scale-[1.2]">
-                      {getCategorySvg(cat)}
-                    </div>
-                  </div>
-                  <span className="text-base font-bold text-[#1F1A14] capitalize">{cat}</span>
-                </button>
-              );
-            })}
-          </div>
+    <div className="flex items-center justify-between px-4 pt-3 md:px-5 md:pt-5">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-haldi font-display text-[24px] leading-none text-white shadow-[0_0_0_3px_rgba(255,255,255,.18)]" aria-hidden>
+          ॐ
+        </span>
+        <div className="leading-none">
+          <p className="text-[12px] font-bold tracking-[0.14em] text-white/75 uppercase">
+            {pick(lang, "Kumbh guide", "कुंभ गाइड", "कुंभ मार्गदर्शक")}
+          </p>
+          <h1 className="font-display text-[26px] leading-[1.1] text-white md:text-[30px]">
+            {pick(lang, "Nashik", "नासिक", "नाशिक")}
+          </h1>
         </div>
       </div>
-
-      {/* Map Area */}
-      <div className="flex-1 relative bg-[#e5e3df]">
-        {!mapReady && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
-             <div className="w-12 h-12 border-4 border-gray-300 border-t-[#E8740C] rounded-full animate-spin"></div>
-          </div>
-        )}
-
-        <APIProvider apiKey={apiKey}>
-          <Map 
-            defaultCenter={{ lat: 20.0059, lng: 73.791 }} 
-            defaultZoom={13} 
-            mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID"}
-            disableDefaultUI={true}
-            gestureHandling="greedy"
+      <nav className="flex rounded-full bg-black/20 p-1 text-[15px]" aria-label="Language">
+        {LANGS.map((l) => (
+          <button
+            key={l.code}
+            onClick={() => setLang(l.code)}
+            aria-pressed={lang === l.code}
+            className={`h-9 rounded-full px-3 font-semibold transition-colors ${lang === l.code ? "bg-white text-maroon" : "text-white/85"}`}
           >
-            <MapController highlightedPlaceIds={highlightedPlaceIds} places={places} setMapReady={setMapReady} />
-            
-            {filteredPlaces.map((place) => (
-              <AdvancedMarker 
-                key={place.id} 
-                position={{ lat: place.lat, lng: place.lng }}
-                onClick={() => {
-                   setSelectedPlace(place);
-                   setHighlightedPlaceIds([place.id]);
-                }}
-              >
-                <PlaceMarker category={place.category} isHighlighted={highlightedPlaceIds.includes(place.id)} />
-              </AdvancedMarker>
-            ))}
-          </Map>
-        </APIProvider>
-        
-        {/* Global Floating Elements (Mobile & Desktop Overlay) */}
-        
-        <VoiceButton 
-           onPlaceIds={setHighlightedPlaceIds} 
-           isBottomSheetOpen={!!selectedPlace} 
-           places={places}
-        />
+            {l.code === "en-IN" ? "EN" : l.label}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
 
-        {/* SOS Button */}
-        <button className="absolute left-6 bottom-8 z-30 flex items-center gap-2 bg-[#DC2626] text-white px-5 py-4 rounded-full font-bold shadow-[0_8px_16px_rgba(220,38,38,0.4)] hover:bg-red-700 active:scale-95 transition-all">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-          <span className="text-lg">SOS</span>
+function SearchField({ value, onChange, onSubmit, lang }: {
+  value: string; onChange: (v: string) => void; onSubmit: () => void; lang: Lang;
+}) {
+  return (
+    <form
+      className="mx-4 mt-3 mb-4 flex h-[54px] items-center gap-2.5 rounded-xl bg-card px-4 shadow-[0_6px_18px_-8px_rgba(0,0,0,.45)] focus-within:ring-3 focus-within:ring-haldi md:mx-5"
+      onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
+      role="search"
+    >
+      <SearchIcon size={22} className="shrink-0 text-maroon" />
+      <input
+        type="search"
+        enterKeyHint="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={pick(lang, "Where do you want to go?", "कहाँ जाना है?", "कुठे जायचं आहे?")}
+        className="h-full min-w-0 flex-1 bg-transparent text-[18px] text-ink outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
+      />
+      {value && (
+        <button type="button" onClick={() => onChange("")} aria-label="Clear" className="flex h-9 w-9 items-center justify-center rounded-full bg-paper-2 text-ink">
+          <XIcon size={18} />
         </button>
+      )}
+    </form>
+  );
+}
 
-        {/* Bottom Sheet */}
-        <div className={`absolute bottom-0 inset-x-0 z-40 bg-white rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] p-6 pb-10 transition-transform duration-500 ease-out transform flex flex-col gap-4 lg:w-[450px] lg:left-6 lg:rounded-[32px] lg:bottom-6 ${selectedPlace ? 'translate-y-0 lg:translate-y-0' : 'translate-y-full lg:translate-y-[150%] opacity-0'}`}>
-          
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 w-16 h-1.5 bg-gray-200 rounded-full lg:hidden"></div>
+function Filters({ selected, onToggle, lang }: {
+  selected: Set<Category>; onToggle: (c: Category) => void; lang: Lang;
+}) {
+  return (
+    <div className="hide-scrollbar flex gap-2 overflow-x-auto px-4 py-2.5 md:flex-wrap md:px-5">
+      {FILTER_ORDER.map((c) => {
+        const on = selected.has(c);
+        return (
+          <button
+            key={c}
+            onClick={() => onToggle(c)}
+            aria-pressed={on}
+            className={`flex h-11 shrink-0 items-center gap-2 rounded-full border-2 pr-4 pl-1.5 text-[16px] font-semibold transition-colors ${
+              on ? "border-haldi bg-haldi text-white" : "border-rule bg-card text-ink"
+            }`}
+          >
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-full text-white"
+              style={{ backgroundColor: on ? "rgba(0,0,0,.18)" : categoryColor(c) }}
+            >
+              <CategoryIcon category={c} size={17} />
+            </span>
+            {loc(lang, CATEGORY_LABEL[c])}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
-          {selectedPlace && (
-            <>
-              <div className="flex justify-between items-start mt-2">
-                <div className="flex gap-4">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0" style={{ backgroundColor: getCategoryColor(selectedPlace.category) }}>
-                    <div className="scale-[1.2]">
-                      {getCategorySvg(selectedPlace.category)}
-                    </div>
-                  </div>
-                  <div>
-                    <h2 className="text-[26px] font-black text-[#1E3A8A] leading-tight">{selectedPlace.name.mr}</h2>
-                    <p className="text-xl font-bold text-[#1F1A14] mt-1">{selectedPlace.name.hi}</p>
-                    <p className="text-lg font-medium text-gray-500 mt-0.5">{selectedPlace.name.en}</p>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedPlace(null)} className="p-3 -mr-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors active:scale-95">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                </button>
-              </div>
-              
-              <div className="flex items-center gap-2 mt-2">
-                 <span className="px-4 py-1.5 bg-[#16A34A]/10 text-[#16A34A] text-base font-bold rounded-lg flex items-center gap-1.5">
-                   <div className="w-2.5 h-2.5 rounded-full bg-[#16A34A]"></div>
-                   Open Now
-                 </span>
-                 <span className="text-lg font-semibold text-gray-600 ml-2">{selectedPlace.area}</span>
-              </div>
-              
-              <div className="mt-4 flex gap-4">
-                 <a 
-                   href={`https://www.google.com/maps/dir/?api=1&destination=${selectedPlace.lat},${selectedPlace.lng}`}
-                   target="_blank" rel="noopener noreferrer"
-                   className="flex-1 bg-[#1E3A8A] text-white text-center py-5 rounded-[24px] font-black text-xl shadow-xl shadow-blue-900/20 active:scale-[0.98] flex flex-col items-center justify-center gap-1 transition-all"
-                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    Directions
-                 </a>
-                 <a 
-                   href="tel:+919876543210"
-                   className="flex-1 bg-[#FFF8EE] border-[3px] border-[#1E3A8A] text-[#1E3A8A] text-center py-5 rounded-[24px] font-black text-xl active:bg-blue-50 active:scale-[0.98] flex flex-col items-center justify-center gap-1 transition-all"
-                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                    Call
-                 </a>
-              </div>
-            </>
-          )}
-        </div>
+function Dock({ lang, voice, onSOS, onNearMe, locating }: {
+  lang: Lang; voice: ReturnType<typeof useVoiceAssistant>; onSOS: () => void; onNearMe: () => void; locating: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-3 items-end bg-card px-5 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))] shadow-[0_-6px_20px_-12px_rgba(42,23,15,.35)]">
+      <button onClick={onSOS} className="flex flex-col items-center gap-1 justify-self-start" aria-label="SOS">
+        <span className="flex h-12 w-[76px] items-center justify-center rounded-full bg-kumkum text-[18px] font-bold tracking-wider text-white shadow-[0_4px_12px_-4px_rgba(196,32,42,.7)] active:scale-95">
+          SOS
+        </span>
+        <span className="text-[14px] font-semibold text-ink">{pick(lang, "Help", "मदद", "मदत")}</span>
+      </button>
 
+      <div className="-mt-6 justify-self-center">
+        <MicFab lang={lang} state={voice.state} onStart={voice.start} onStop={voice.stop} />
+      </div>
+
+      <button onClick={onNearMe} className="flex flex-col items-center gap-1 justify-self-end">
+        <span className={`flex h-12 w-12 items-center justify-center rounded-full border-2 border-maroon text-maroon active:bg-paper-2 ${locating ? "animate-pulse" : ""}`}>
+          <LocateIcon size={22} />
+        </span>
+        <span className="text-[14px] font-semibold text-ink">{pick(lang, "Near me", "पास में", "जवळ")}</span>
+      </button>
+    </div>
+  );
+}
+
+/** First thing a pilgrim sees above the dock: the three ways to start, in plain words. */
+function StartCard({ lang, onPick, onClose }: { lang: Lang; onPick: (c: Category) => void; onClose: () => void }) {
+  const quick: Category[] = ["transport", "ghat", "toilet", "hospital"];
+  return (
+    <div className="rise mx-3 rounded-xl border border-rule bg-card p-3.5 shadow-[0_10px_28px_-14px_rgba(42,23,15,.55)]">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[17px] leading-snug font-semibold text-ink">
+          {pick(lang,
+            "Tap the orange mic and ask, or choose:",
+            "केसरिया माइक दबाकर पूछें, या चुनें:",
+            "केशरी माईक दाबून विचारा, किंवा निवडा:")}
+        </p>
+        <button onClick={onClose} aria-label="Close" className="-mt-1 -mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted active:bg-paper-2">
+          <XIcon size={18} />
+        </button>
+      </div>
+      <div className="mt-2.5 grid grid-cols-4 gap-2">
+        {quick.map((c) => (
+          <button key={c} onClick={() => onPick(c)} className="flex flex-col items-center gap-1 rounded-lg bg-paper py-2 active:bg-paper-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ backgroundColor: categoryColor(c) }}>
+              <CategoryIcon category={c} size={20} />
+            </span>
+            <span className="text-center text-[13px] leading-tight font-semibold text-ink">{loc(lang, CATEGORY_LABEL[c])}</span>
+          </button>
+        ))}
       </div>
     </div>
+  );
+}
+
+function PlaceList({ places, userPos, lang, onSelect, ranked = false }: {
+  places: Place[]; userPos: LatLng | null; lang: Lang; onSelect: (p: Place) => void;
+  /** Places are already in best-match order: keep it rather than sorting by distance. */
+  ranked?: boolean;
+}) {
+  const rows = useMemo(() => {
+    const withKm = places.map((p) => ({ p, km: userPos ? haversineKm(userPos, p) : null }));
+    if (userPos && !ranked) withKm.sort((a, b) => (a.km ?? 0) - (b.km ?? 0));
+    return withKm.slice(0, 60);
+  }, [places, userPos, ranked]);
+
+  return (
+    <div>
+      <p className="kicker px-5 pt-4 pb-2">
+        <span className="tnum">{places.length}</span> {pick(lang, "places", "जगहें", "ठिकाणं")}
+        {userPos ? ` · ${pick(lang, "nearest first", "नज़दीकी पहले", "जवळचे आधी")}` : ""}
+      </p>
+      <ul className="border-t border-rule">
+        {rows.map(({ p, km }) => (
+          <li key={p.id} className="border-b border-rule">
+            <button onClick={() => onSelect(p)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-paper-2 active:bg-paper-2">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white" style={{ backgroundColor: categoryColor(p.category) }}>
+                <CategoryIcon category={p.category} size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[17px] font-semibold">{placeName(lang, p)}</span>
+                <span className="block truncate text-[14px] text-muted">{p.area}</span>
+              </span>
+              {km !== null && (
+                <span className="tnum shrink-0 text-[15px] font-semibold text-maroon">
+                  {formatDistanceKm(km).value} {formatDistanceKm(km).unit}
+                </span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ─── Screen ────────────────────────────────────────────────────────────────
+export default function MapClient({ places }: { places: Place[] }) {
+  // One voice instance for the whole screen: the mic and the answer panel must share state.
+  const voice = useVoiceAssistant();
+  const advisories = useActiveAdvisories();
+  // Most severe advisory per place (list is already sorted closed → warning → info).
+  const alertByPlace = useMemo(() => {
+    const m = new globalThis.Map<string, Severity>();
+    for (const a of advisories) if (a.placeId && !m.has(a.placeId)) m.set(a.placeId, a.severity);
+    return m;
+  }, [advisories]);
+  const [lang, setLangState] = useState<Lang>("en-IN");
+  const [filters, setFilters] = useState<Set<Category>>(new Set());
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Place | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [userPos, setUserPos] = useState<LatLng | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [showSOS, setShowSOS] = useState(false);
+  const [startClosed, setStartClosed] = useState(false);
+  // The answer the pilgrim closed; a new answer (or a new question) shows the panel again.
+  const [dismissedAnswer, setDismissedAnswer] = useState<string | null>(null);
+
+  const setLang = useCallback((l: Lang) => { setLangState(l); voice.setLang(l); }, [voice]);
+  const focus = useMemo(() => (selected ? [selected.id] : voice.placeIds), [selected, voice.placeIds]);
+  const voiceHidden = voice.state === "idle" && voice.answer !== "" && voice.answer === dismissedAnswer;
+
+  const visible = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return places.filter((p) => {
+      if (focus.includes(p.id)) return true;
+      if (filters.size && !filters.has(p.category)) return false;
+      if (!q) return filters.has("transport") || !isMinorStop(p);
+      return matchesQuery(p, q);
+    });
+  }, [places, filters, search, focus]);
+
+  // For the results list: best match first while searching.
+  const ranked = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return visible;
+    return visible
+      .map((p) => ({ p, s: matchScore(p, q) }))
+      .sort((a, b) => b.s - a.s)
+      .map((x) => x.p);
+  }, [visible, search]);
+
+  // The user is looking for something (filter or search) rather than just viewing the map.
+  const browsing = filters.size > 0 || search.trim() !== "";
+
+  const toggleFilter = useCallback((c: Category) => {
+    setFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(c)) next.delete(c);
+      else next.add(c);
+      return next;
+    });
+  }, []);
+
+  const nearMe = useCallback(() => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocating(false); },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }, []);
+
+  const select = useCallback((p: Place) => setSelected(p), []);
+
+  // Typed question: if nothing matches locally, hand it to the assistant.
+  const submitSearch = useCallback(() => {
+    const q = search.trim();
+    if (!q) return;
+    if (visible.length === 1) select(visible[0]);
+    else if (visible.length === 0) void voice.ask(q);
+  }, [search, visible, select, voice]);
+
+  const voicePanel = (variant: "float" | "inline") =>
+    voiceHidden ? null : (
+      <VoicePanel
+        variant={variant}
+        voice={voice}
+        places={places}
+        lang={lang}
+        onSelectPlace={select}
+        onDismiss={() => setDismissedAnswer(voice.answer)}
+      />
+    );
+
+  return (
+    <>
+      <HintOverlay />
+
+      <div
+        className="grid h-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] [grid-template-areas:'top'_'map'_'dock'] md:grid-cols-[400px_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)_auto] md:[grid-template-areas:'top_map'_'rail_map'_'dock_map']"
+      >
+        <header className="z-10 border-b border-rule bg-paper [grid-area:top]">
+          <div className="bg-maroon bg-[radial-gradient(120%_140%_at_100%_0%,#A3302A_0%,transparent_60%)]">
+            <Masthead lang={lang} setLang={setLang} />
+            <SearchField value={search} onChange={setSearch} onSubmit={submitSearch} lang={lang} />
+          </div>
+          <Filters selected={filters} onToggle={toggleFilter} lang={lang} />
+        </header>
+
+        {/* Desktop rail */}
+        <aside className="hidden min-h-0 overflow-y-auto border-r border-rule bg-paper [grid-area:rail] md:block">
+          {voicePanel("inline")}
+          {selected ? (
+            <div className="border-b border-rule">
+              <PlaceSheet place={selected} lang={lang} userPos={userPos} onClose={() => setSelected(null)} />
+            </div>
+          ) : (
+            <PlaceList places={ranked} ranked={search.trim() !== ""} userPos={userPos} lang={lang} onSelect={select} />
+          )}
+        </aside>
+
+        <main className="relative min-h-0 [grid-area:map]">
+          {!mapReady && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper-2">
+              <p className="kicker">{pick(lang, "Loading map", "नक्शा खुल रहा है", "नकाशा उघडत आहे")}</p>
+            </div>
+          )}
+
+          <APIProvider apiKey={API_KEY}>
+            <Map
+              defaultCenter={NASHIK_CENTER}
+              defaultZoom={13}
+              mapId={MAP_ID}
+              disableDefaultUI
+              clickableIcons={false}
+              gestureHandling="greedy"
+              style={{ width: "100%", height: "100%" }}
+              onClick={() => setSelected(null)}
+            >
+              <MapController
+                focus={focus}
+                places={places}
+                userPos={userPos}
+                onReady={() => setMapReady(true)}
+                results={visible}
+                resultsKey={browsing ? `${[...filters].join(",")}|${search.trim().toLowerCase()}` : ""}
+              />
+              {visible.map((p) => (
+                <AdvancedMarker
+                  key={p.id}
+                  position={p}
+                  title={placeName(lang, p)}
+                  zIndex={focus.includes(p.id) ? 10 : alertByPlace.has(p.id) ? 5 : 1}
+                  onClick={() => select(p)}
+                >
+                  <Pin category={p.category} active={focus.includes(p.id)} alert={alertByPlace.get(p.id)} />
+                </AdvancedMarker>
+              ))}
+              {userPos && (
+                <AdvancedMarker position={userPos} zIndex={20}>
+                  <div className="user-dot h-4 w-4 translate-y-1/2 rounded-full border-2 border-white bg-river" />
+                </AdvancedMarker>
+              )}
+            </Map>
+          </APIProvider>
+
+          {/* Phone overlays */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col gap-2 md:hidden">
+            {!selected && browsing && visible.length > 0 && voice.state === "idle" && !voice.answer && (
+              <div className="rise pointer-events-auto max-h-[34dvh] overflow-y-auto rounded-t-xl border-t border-rule bg-paper shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">
+                <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-rule" />
+                <PlaceList places={ranked} ranked={search.trim() !== ""} userPos={userPos} lang={lang} onSelect={select} />
+              </div>
+            )}
+            {!selected && !browsing && !startClosed && voice.state === "idle" && !voice.answer && (
+              <div className="pointer-events-auto pb-3">
+                <StartCard lang={lang} onPick={(c) => { toggleFilter(c); setStartClosed(true); }} onClose={() => setStartClosed(true)} />
+              </div>
+            )}
+            {!selected && <div className="pointer-events-auto pb-3">{voicePanel("float")}</div>}
+            {selected && (
+              <div className="pointer-events-auto max-h-[72dvh] overflow-y-auto rounded-t-xl border-t border-rule shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">
+                <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-rule" />
+                <PlaceSheet place={selected} lang={lang} userPos={userPos} onClose={() => setSelected(null)} />
+              </div>
+            )}
+          </div>
+
+          {!(search && visible.length === 0) && (
+            <AdvisoryBanner advisories={advisories} places={places} lang={lang} onSelectPlace={select} />
+          )}
+
+          {search && visible.length === 0 && (
+            <div className="absolute inset-x-3 top-3 z-20 rounded-md border border-rule bg-card px-4 py-3 text-[15px]">
+              {pick(lang, "No place by that name. Press Enter to ask the guide.", "इस नाम की जगह नहीं मिली। Enter दबाकर पूछें।", "या नावाचं ठिकाण नाही. Enter दाबून विचारा.")}
+            </div>
+          )}
+        </main>
+
+        <footer className="z-10 [grid-area:dock] md:border-r md:border-rule">
+          <Dock lang={lang} voice={voice} onSOS={() => setShowSOS(true)} onNearMe={nearMe} locating={locating} />
+        </footer>
+      </div>
+
+      {showSOS && (
+        <SosSheet lang={lang} places={places} userPos={userPos} onClose={() => setShowSOS(false)} onSelectPlace={select} />
+      )}
+    </>
   );
 }

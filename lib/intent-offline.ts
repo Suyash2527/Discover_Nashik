@@ -16,6 +16,7 @@ const CATEGORY_NOUN: Record<Category, Record<LangKey, string>> = {
   stay:     { en: "place to stay", hi: "ठहरने की जगह",  mr: "राहण्याची जागा" },
   food:     { en: "place to eat",  hi: "खाने की जगह",   mr: "जेवणाची जागा" },
   parking:  { en: "parking",       hi: "पार्किंग",      mr: "वाहनतळ" },
+  transport: { en: "bus stand or station", hi: "बस स्टैंड या स्टेशन", mr: "बस स्थानक किंवा स्टेशन" },
   hospital: { en: "hospital",      hi: "अस्पताल",       mr: "रुग्णालय" },
   police:   { en: "police station",hi: "पुलिस स्टेशन",  mr: "पोलीस स्टेशन" },
   toilet:   { en: "toilet",        hi: "शौचालय",        mr: "शौचालय" },
