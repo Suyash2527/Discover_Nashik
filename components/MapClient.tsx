@@ -111,8 +111,7 @@ export default function MapClient({ places }: { places: Place[] }) {
   const [highlightedPlaceIds, setHighlightedPlaceIds] = useState<string[]>([]);
   const [mapReady, setMapReady] = useState(false);
   
-  // Use either the env variable or a fallback for demo
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyAtyRi3sk9kJTus_1RJkJqQu7FgH0DoRgY";
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
   const filteredPlaces = useMemo(() => {
     return places.filter(p => {
