@@ -98,6 +98,19 @@ function sentenceCount(text: string): number {
   return (text.match(/[^.!?।]+[.!?।]+|[^.!?।]+$/g) ?? []).length;
 }
 
+/**
+ * A complete answer, not a truncated fragment.
+ *
+ * Non-empty + "<= 2 sentences" is NOT enough: when the model's output budget is
+ * consumed by reasoning tokens it returns something like "Kumbh Mela is", which
+ * satisfies both and silently passed. A real spoken answer ends on a sentence
+ * terminator and is not a handful of characters.
+ */
+function isComplete(text: string): boolean {
+  const t = text.trim();
+  return t.length >= 25 && /[.!?।]$/.test(t);
+}
+
 // ---------------------------------------------------------------------------
 // Live Gemini (opt-in)
 // ---------------------------------------------------------------------------
@@ -115,6 +128,7 @@ async function live() {
       console.log(`  [${lang}] "${query}"\n        -> ${answer}`);
       check(`[${lang}] "${query}" non-empty`, answer.trim().length > 0);
       check(`[${lang}] "${query}" <= 2 sentences`, sentenceCount(answer) <= 2, `got ${sentenceCount(answer)}`);
+      check(`[${lang}] "${query}" not truncated`, isComplete(answer), `truncated: "${answer}"`);
     } catch (error) {
       check(`[${lang}] "${query}" answered`, false, String(error));
     }
@@ -138,6 +152,15 @@ async function live() {
   const answer = await answerWithGemini("Tell me about Ramkund", "en-IN", scored.map((s) => s.place));
   console.log(`  -> ${answer}`);
   check("grounded answer <= 2 sentences", sentenceCount(answer) <= 2);
+  check("grounded answer not truncated", isComplete(answer), `truncated: "${answer}"`);
+  // The prompt's own scaffolding must never surface in the answer. Matched on
+  // distinctive phrases only — a bare /pilgrim/ would flag the word "pilgrims",
+  // which is entirely natural in a real answer.
+  check(
+    "grounded answer leaks no prompt text",
+    !/no markdown|RULES —|PILGRIM'S QUESTION|PLACES FROM OUR DATA|id=/i.test(answer),
+    answer,
+  );
 }
 
 live()

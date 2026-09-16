@@ -11,7 +11,14 @@ import { GoogleGenAI } from "@google/genai";
 import type { Lang, Place } from "@/types";
 import { normalize } from "./text";
 
-const DEFAULT_MODEL = "gemini-2.0-flash";
+/**
+ * Pinned, not "latest": a silent upstream model swap could change latency or
+ * tone mid-Kumbh. gemini-2.0-flash was retired (the API now 404s on it and
+ * points here), so this is the current free-tier flash model.
+ * gemini-flash-latest also works but measured ~3x slower — too slow for the
+ * GEMINI_TIMEOUT_MS budget in app/api/ask.
+ */
+const DEFAULT_MODEL = "gemini-3.6-flash";
 
 type LangKey = "en" | "hi" | "mr";
 
@@ -217,6 +224,14 @@ async function generate(prompt: string): Promise<string> {
       temperature: 0.2,
       maxOutputTokens: 200,
       candidateCount: 1,
+      // MUST stay disabled. gemini-3.6-flash is a thinking model and reasoning
+      // tokens are billed against maxOutputTokens, so with thinking on the
+      // budget is spent before the visible answer starts — answers came back
+      // truncated mid-sentence ("Kumbh Mela is") or leaking prompt fragments.
+      // Raising the cap to ~800 also fixes it but costs ~4 s, over the 2.5 s
+      // GEMINI_TIMEOUT_MS budget in app/api/ask. A 2-sentence grounded answer
+      // gains nothing from chain-of-thought anyway.
+      thinkingConfig: { thinkingBudget: 0 },
     },
   });
 
