@@ -5,15 +5,17 @@ import type { Lang } from "@/types/voice";
 import { formatDistanceKm, haversineKm, type LatLng } from "@/lib/geo";
 import { CategoryIcon, categoryColor, NavigationIcon, PhoneIcon, XIcon } from "./icons";
 import { CATEGORY_LABEL, loc, pick } from "./copy";
+import PlacePhoto from "./PlacePhoto";
 
 interface Props {
   place: Place;
   lang: Lang;
   userPos: LatLng | null;
   onClose: () => void;
+  onDirections: () => void;
 }
 
-export default function PlaceSheet({ place, lang, userPos, onClose }: Props) {
+export default function PlaceSheet({ place, lang, userPos, onClose, onDirections }: Props) {
   const primary = loc(lang, place.name);
   // Always show one other script so a pilgrim can match it against signboards.
   const alt = lang === "en-IN" ? place.name.mr : place.name.en;
@@ -25,7 +27,8 @@ export default function PlaceSheet({ place, lang, userPos, onClose }: Props) {
 
   return (
     <article className="rise bg-card">
-      <div className="flex items-start gap-3 px-5 pt-4">
+      <PlacePhoto key={place.id} place={place} lang={lang} />
+      <div className="flex items-start gap-3 px-5 pt-3">
         <span
           className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
           style={{ backgroundColor: categoryColor(place.category) }}
@@ -69,19 +72,17 @@ export default function PlaceSheet({ place, lang, userPos, onClose }: Props) {
       </dl>
 
       <div className="flex gap-2 px-5 pt-4 pb-5">
-        <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-xl bg-haldi text-[18px] font-bold text-white shadow-[0_6px_16px_-8px_rgba(226,106,18,.8)] active:opacity-90"
+        <button
+          onClick={onDirections}
+          className="flex h-[56px] flex-1 items-center justify-center gap-2 rounded-xl bg-haldi text-[19px] font-bold text-white shadow-[0_6px_16px_-8px_rgba(226,106,18,.8)] active:opacity-90"
         >
-          <NavigationIcon size={19} />
+          <NavigationIcon size={21} />
           {pick(lang, "Directions", "रास्ता", "रस्ता दाखवा")}
-        </a>
+        </button>
         {place.phone && (
           <a
             href={`tel:${place.phone}`}
-            className="flex h-[52px] items-center justify-center gap-2 rounded-md border border-ink px-5 text-[17px] font-semibold text-ink active:bg-paper-2"
+            className="flex h-[56px] items-center justify-center gap-2 rounded-xl border-2 border-ink px-5 text-[17px] font-semibold text-ink active:bg-paper-2"
           >
             <PhoneIcon size={18} />
             {pick(lang, "Call", "कॉल", "फोन")}

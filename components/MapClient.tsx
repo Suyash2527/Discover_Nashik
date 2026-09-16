@@ -11,6 +11,9 @@ import { CATEGORY_LABEL, LANGS, loc, pick, placeName } from "./copy";
 import VoicePanel from "./VoicePanel";
 import MicFab from "./MicFab";
 import PlaceSheet from "./PlaceSheet";
+import DirectionsCard from "./DirectionsCard";
+import RouteLine from "./RouteLine";
+import { useDirections } from "./useDirections";
 import SosSheet from "./SosSheet";
 import HintOverlay from "./HintOverlay";
 import AdvisoryBanner, { SEVERITY_COLOR, useActiveAdvisories } from "./AdvisoryBanner";
@@ -361,6 +364,9 @@ export default function MapClient({ places }: { places: Place[] }) {
   const [startClosed, setStartClosed] = useState(false);
   // The answer the pilgrim closed; a new answer (or a new question) shows the panel again.
   const [dismissedAnswer, setDismissedAnswer] = useState<string | null>(null);
+  // Directions card open for the selected place.
+  const [routing, setRouting] = useState(false);
+  const directions = useDirections(routing ? selected : null, lang, userPos, setUserPos);
 
   const setLang = useCallback((l: Lang) => { setLangState(l); voice.setLang(l); }, [voice]);
   const focus = useMemo(() => (selected ? [selected.id] : voice.placeIds), [selected, voice.placeIds]);
@@ -408,7 +414,15 @@ export default function MapClient({ places }: { places: Place[] }) {
     );
   }, []);
 
-  const select = useCallback((p: Place) => setSelected(p), []);
+  const select = useCallback((p: Place) => { setSelected(p); setRouting(false); }, []);
+  const closeSheet = useCallback(() => { setSelected(null); setRouting(false); }, []);
+
+  const sheet = (p: Place) =>
+    routing ? (
+      <DirectionsCard place={p} lang={lang} directions={directions} onBack={() => setRouting(false)} onClose={closeSheet} />
+    ) : (
+      <PlaceSheet place={p} lang={lang} userPos={userPos} onClose={closeSheet} onDirections={() => setRouting(true)} />
+    );
 
   // Typed question: if nothing matches locally, hand it to the assistant.
   const submitSearch = useCallback(() => {
@@ -442,7 +456,10 @@ export default function MapClient({ places }: { places: Place[] }) {
             <Masthead lang={lang} setLang={setLang} />
             <SearchField value={search} onChange={setSearch} onSubmit={submitSearch} lang={lang} />
           </div>
-          <Filters selected={filters} onToggle={toggleFilter} lang={lang} />
+          {/* Directions on a phone need every pixel of map for the route. */}
+          <div className={routing ? "hidden md:block" : ""}>
+            <Filters selected={filters} onToggle={toggleFilter} lang={lang} />
+          </div>
         </header>
 
         {/* Desktop rail */}
@@ -450,7 +467,7 @@ export default function MapClient({ places }: { places: Place[] }) {
           {voicePanel("inline")}
           {selected ? (
             <div className="border-b border-rule">
-              <PlaceSheet place={selected} lang={lang} userPos={userPos} onClose={() => setSelected(null)} />
+              {sheet(selected)}
             </div>
           ) : (
             <PlaceList places={ranked} ranked={search.trim() !== ""} userPos={userPos} lang={lang} onSelect={select} />
@@ -473,7 +490,7 @@ export default function MapClient({ places }: { places: Place[] }) {
               clickableIcons={false}
               gestureHandling="greedy"
               style={{ width: "100%", height: "100%" }}
-              onClick={() => setSelected(null)}
+              onClick={closeSheet}
             >
               <MapController
                 focus={focus}
@@ -482,6 +499,10 @@ export default function MapClient({ places }: { places: Place[] }) {
                 onReady={() => setMapReady(true)}
                 results={visible}
                 resultsKey={browsing ? `${[...filters].join(",")}|${search.trim().toLowerCase()}` : ""}
+              />
+              <RouteLine
+                polyline={routing && directions.status === "route" ? directions.route?.polyline ?? null : null}
+                destination={selected ?? undefined}
               />
               {visible.map((p) => (
                 <AdvancedMarker
@@ -503,7 +524,7 @@ export default function MapClient({ places }: { places: Place[] }) {
           </APIProvider>
 
           {/* Phone overlays */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col gap-2 md:hidden">
+          <div data-map-overlay className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col gap-2 md:hidden">
             {!selected && browsing && visible.length > 0 && voice.state === "idle" && !voice.answer && (
               <div className="rise pointer-events-auto max-h-[34dvh] overflow-y-auto rounded-t-xl border-t border-rule bg-paper shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">
                 <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-rule" />
@@ -519,13 +540,16 @@ export default function MapClient({ places }: { places: Place[] }) {
             {selected && (
               <div className="pointer-events-auto max-h-[72dvh] overflow-y-auto rounded-t-xl border-t border-rule shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">
                 <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-rule" />
-                <PlaceSheet place={selected} lang={lang} userPos={userPos} onClose={() => setSelected(null)} />
+                {sheet(selected)}
               </div>
             )}
           </div>
 
           {!(search && visible.length === 0) && (
-            <AdvisoryBanner advisories={advisories} places={places} lang={lang} onSelectPlace={select} />
+            // On phones the open sheet covers the map; the banner would sit on its photo.
+            <div className={selected ? "hidden md:contents" : "contents"}>
+              <AdvisoryBanner advisories={advisories} places={places} lang={lang} onSelectPlace={select} />
+            </div>
           )}
 
           {search && visible.length === 0 && (

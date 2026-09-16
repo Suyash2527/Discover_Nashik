@@ -257,6 +257,55 @@ export function LocateIcon({ size = 24, ...p }: IconProps) {
   );
 }
 
+export function WalkIcon({ size = 24, ...p }: IconProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <circle cx="13" cy="4" r="2" />
+      <path d="M9 21 L11 15 L14 17 V22" />
+      <path d="M7 12 L9.5 8.5 L13.5 8 L16 11.5 L19 12.5" />
+      <path d="M13.5 8 L11 15" />
+    </svg>
+  );
+}
+
+export function CarIcon({ size = 24, ...p }: IconProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M5 17 H3 V12 L5.5 6.5 H18.5 L21 12 V17 H19" />
+      <path d="M3 12 H21" />
+      <circle cx="7" cy="17" r="2" />
+      <circle cx="17" cy="17" r="2" />
+      <path d="M9 17 H15" />
+    </svg>
+  );
+}
+
+/** Solid arrow pointing up (north); rotate it with CSS. */
+export function ArrowUpIcon({ size = 24, ...p }: IconProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M12 2 L20 21 L12 16.5 L4 21 Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function ChevronLeftIcon({ size = 24, ...p }: IconProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M15 18 L9 12 L15 6" />
+    </svg>
+  );
+}
+
+export function ListIcon({ size = 24, ...p }: IconProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M8 6 H21 M8 12 H21 M8 18 H21" />
+      <circle cx="3.5" cy="6" r="1" /><circle cx="3.5" cy="12" r="1" /><circle cx="3.5" cy="18" r="1" />
+    </svg>
+  );
+}
+
 /** Returns the icon component for any category */
 export function CategoryIcon({ category, size = 24 }: { category: string; size?: number }) {
   const props = { size };
