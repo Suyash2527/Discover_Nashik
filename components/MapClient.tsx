@@ -49,10 +49,25 @@ function Pin({ category, active, alert }: { category: Category; active: boolean;
   );
 }
 
-function MapController({ focus, places, userPos, onReady }: {
+function MapController({ focus, places, userPos, onReady, results, resultsKey }: {
   focus: string[]; places: Place[]; userPos: LatLng | null; onReady: () => void;
+  /** Places matching the active filter/search; the map zooms to show them. */
+  results: Place[]; resultsKey: string;
 }) {
   const map = useMap();
+
+  useEffect(() => {
+    if (!map || !resultsKey || results.length === 0) return;
+    // Wait for typing to settle before moving the map.
+    const t = setTimeout(() => {
+      if (results.length === 1) { map.panTo(results[0]); map.setZoom(16); return; }
+      const b = new google.maps.LatLngBounds();
+      results.forEach((p) => b.extend(p));
+      map.fitBounds(b, 48);
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, resultsKey]);
 
   useEffect(() => {
     if (!map) return;
@@ -87,6 +102,55 @@ function MapController({ focus, places, userPos, onReady }: {
 
   return null;
 }
+
+const FILTER_ORDER: Category[] = ["transport", ...CATEGORIES.filter((c) => c !== "transport")];
+
+/** Words that find a whole category from the search box ("bus", "train", "auto", "दवाई"…). */
+const CATEGORY_WORDS: Partial<Record<Category, string[]>> = {
+  transport: ["bus", "stop", "stand", "station", "railway", "train", "rail", "airport", "flight", "auto", "rickshaw", "taxi", "depot", "citilinc", "st", "बस", "स्टेशन", "रेलवे", "रेल्वे", "ट्रेन", "रिक्षा", "रिक्शा", "ऑटो", "विमानतळ", "हवाई"],
+  hospital: ["hospital", "doctor", "clinic", "अस्पताल", "रुग्णालय", "दवाखाना"],
+  police:   ["police", "पुलिस", "पोलीस"],
+  toilet:   ["toilet", "washroom", "bathroom", "शौचालय"],
+  water:    ["water", "पानी", "पाणी"],
+  chemist:  ["chemist", "medical", "pharmacy", "medicine", "दवाई", "औषध"],
+  food:     ["food", "restaurant", "eat", "भोजन", "जेवण"],
+  stay:     ["hotel", "stay", "lodge", "room", "dharamshala", "होटल", "हॉटेल"],
+  parking:  ["parking", "पार्किंग", "वाहनतळ"],
+  temple:   ["temple", "mandir", "मंदिर"],
+  ghat:     ["ghat", "kund", "घाट", "कुंड"],
+};
+
+/** Every word the user typed must match the place somewhere, so "nashik road station" works. */
+function matchesQuery(p: Place, q: string): boolean {
+  const hay = [p.name.en, p.name.hi, p.name.mr, p.area, ...p.aliases].join(" ").toLowerCase();
+  const catWords = CATEGORY_WORDS[p.category] ?? [];
+  return q.split(/\s+/).every((w) => hay.includes(w) || catWords.some((c) => c.startsWith(w) && w.length >= 2));
+}
+
+/**
+ * How well a place answers the query, higher first: the words in its own name beat
+ * the words only in its aliases, which beat a bare category hit ("stop" → any transport).
+ */
+function matchScore(p: Place, q: string): number {
+  const words = q.split(/\s+/).filter(Boolean);
+  const name = [p.name.en, p.name.hi, p.name.mr].join(" ").toLowerCase();
+  const text = [name, p.area, ...p.aliases].join(" ").toLowerCase();
+  const catWords = CATEGORY_WORDS[p.category] ?? [];
+  let score = 0;
+  for (const w of words) {
+    if (name.includes(w)) score += 10;
+    else if (text.includes(w)) score += 4;
+    else score += 1;
+  }
+  // The query names this kind of place ("station" → transport, not a toilet *at* the station).
+  if (words.some((w) => w.length >= 3 && catWords.some((c) => c.startsWith(w)))) score += 25;
+  if (p.name.en.toLowerCase().startsWith(words[0] ?? "")) score += 15;
+  // Among equals, the shorter (more specific) name wins.
+  return score - p.name.en.length / 10;
+}
+
+/** City bus stops are many and small: only show them when the user is looking for transport. */
+const isMinorStop = (p: Place) => p.id.startsWith("bus-stop-");
 
 // ─── Chrome ────────────────────────────────────────────────────────────────
 function Masthead({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
@@ -146,7 +210,7 @@ function Filters({ selected, onToggle, lang }: {
 }) {
   return (
     <div className="hide-scrollbar mt-3 flex gap-1.5 overflow-x-auto px-4 pb-3 md:flex-wrap md:px-5">
-      {CATEGORIES.map((c) => {
+      {FILTER_ORDER.map((c) => {
         const on = selected.has(c);
         return (
           <button
@@ -197,14 +261,16 @@ function Dock({ lang, voice, onSOS, onNearMe, locating }: {
   );
 }
 
-function PlaceList({ places, userPos, lang, onSelect }: {
+function PlaceList({ places, userPos, lang, onSelect, ranked = false }: {
   places: Place[]; userPos: LatLng | null; lang: Lang; onSelect: (p: Place) => void;
+  /** Places are already in best-match order: keep it rather than sorting by distance. */
+  ranked?: boolean;
 }) {
   const rows = useMemo(() => {
     const withKm = places.map((p) => ({ p, km: userPos ? haversineKm(userPos, p) : null }));
-    if (userPos) withKm.sort((a, b) => (a.km ?? 0) - (b.km ?? 0));
+    if (userPos && !ranked) withKm.sort((a, b) => (a.km ?? 0) - (b.km ?? 0));
     return withKm.slice(0, 60);
-  }, [places, userPos]);
+  }, [places, userPos, ranked]);
 
   return (
     <div>
@@ -265,16 +331,23 @@ export default function MapClient({ places }: { places: Place[] }) {
     return places.filter((p) => {
       if (focus.includes(p.id)) return true;
       if (filters.size && !filters.has(p.category)) return false;
-      if (!q) return true;
-      return (
-        p.name.en.toLowerCase().includes(q) ||
-        p.name.hi.includes(q) ||
-        p.name.mr.includes(q) ||
-        p.area.toLowerCase().includes(q) ||
-        p.aliases.some((a) => a.toLowerCase().includes(q))
-      );
+      if (!q) return filters.has("transport") || !isMinorStop(p);
+      return matchesQuery(p, q);
     });
   }, [places, filters, search, focus]);
+
+  // For the results list: best match first while searching.
+  const ranked = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return visible;
+    return visible
+      .map((p) => ({ p, s: matchScore(p, q) }))
+      .sort((a, b) => b.s - a.s)
+      .map((x) => x.p);
+  }, [visible, search]);
+
+  // The user is looking for something (filter or search) rather than just viewing the map.
+  const browsing = filters.size > 0 || search.trim() !== "";
 
   const toggleFilter = useCallback((c: Category) => {
     setFilters((prev) => {
@@ -338,7 +411,7 @@ export default function MapClient({ places }: { places: Place[] }) {
               <PlaceSheet place={selected} lang={lang} userPos={userPos} onClose={() => setSelected(null)} />
             </div>
           ) : (
-            <PlaceList places={visible} userPos={userPos} lang={lang} onSelect={select} />
+            <PlaceList places={ranked} ranked={search.trim() !== ""} userPos={userPos} lang={lang} onSelect={select} />
           )}
         </aside>
 
@@ -360,7 +433,14 @@ export default function MapClient({ places }: { places: Place[] }) {
               style={{ width: "100%", height: "100%" }}
               onClick={() => setSelected(null)}
             >
-              <MapController focus={focus} places={places} userPos={userPos} onReady={() => setMapReady(true)} />
+              <MapController
+                focus={focus}
+                places={places}
+                userPos={userPos}
+                onReady={() => setMapReady(true)}
+                results={visible}
+                resultsKey={browsing ? `${[...filters].join(",")}|${search.trim().toLowerCase()}` : ""}
+              />
               {visible.map((p) => (
                 <AdvancedMarker
                   key={p.id}
@@ -382,6 +462,12 @@ export default function MapClient({ places }: { places: Place[] }) {
 
           {/* Phone overlays */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col gap-2 md:hidden">
+            {!selected && browsing && visible.length > 0 && voice.state === "idle" && !voice.answer && (
+              <div className="rise pointer-events-auto max-h-[34dvh] overflow-y-auto rounded-t-xl border-t border-rule bg-paper shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">
+                <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-rule" />
+                <PlaceList places={ranked} ranked={search.trim() !== ""} userPos={userPos} lang={lang} onSelect={select} />
+              </div>
+            )}
             {!selected && <div className="pointer-events-auto pb-3">{voicePanel("float")}</div>}
             {selected && (
               <div className="pointer-events-auto max-h-[72dvh] overflow-y-auto rounded-t-xl border-t border-rule shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">

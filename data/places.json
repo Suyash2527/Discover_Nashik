@@ -2187,7 +2187,15 @@
       "nasik road",
       "railway station",
       "nashik station",
-      "nsk"
+      "nsk",
+      "train station",
+      "train",
+      "railway",
+      "station",
+      "rail",
+      "ट्रेन",
+      "रेलवे स्टेशन",
+      "रेल्वे स्थानक"
     ],
     "category": "transport",
     "lat": 19.948145,
@@ -2215,7 +2223,16 @@
       "thakkar bazar",
       "thakar bazar",
       "thakkar bazaar bus stand",
-      "new cbs"
+      "new cbs",
+      "bus stand",
+      "bus station",
+      "st stand",
+      "st bus",
+      "msrtc",
+      "bus",
+      "बस स्टैंड",
+      "बस स्थानक",
+      "एसटी स्टँड"
     ],
     "category": "transport",
     "lat": 19.998364,
@@ -2243,7 +2260,16 @@
       "mahamarg",
       "mumbai naka bus stand",
       "mahamarg bus stand",
-      "highway bus stand"
+      "highway bus stand",
+      "bus stand",
+      "bus station",
+      "st stand",
+      "st bus",
+      "msrtc",
+      "bus",
+      "बस स्टैंड",
+      "बस स्थानक",
+      "एसटी स्टँड"
     ],
     "category": "transport",
     "lat": 19.988042,
@@ -2271,7 +2297,16 @@
       "nimani",
       "nimani bus station",
       "nimani stand",
-      "panchavati bus stand"
+      "panchavati bus stand",
+      "bus stand",
+      "bus station",
+      "st stand",
+      "st bus",
+      "msrtc",
+      "bus",
+      "बस स्टैंड",
+      "बस स्थानक",
+      "एसटी स्टँड"
     ],
     "category": "transport",
     "lat": 20.011676,
@@ -2298,7 +2333,16 @@
     "aliases": [
       "mela bus stand",
       "mela stand",
-      "mela bus station"
+      "mela bus station",
+      "bus stand",
+      "bus station",
+      "st stand",
+      "st bus",
+      "msrtc",
+      "bus",
+      "बस स्टैंड",
+      "बस स्थानक",
+      "एसटी स्टँड"
     ],
     "category": "transport",
     "lat": 19.999883,
@@ -2326,7 +2370,16 @@
       "trimbak bus stand",
       "trimbakeshwar bus stand",
       "trimbak depot",
-      "trimbak st stand"
+      "trimbak st stand",
+      "bus stand",
+      "bus station",
+      "st stand",
+      "st bus",
+      "msrtc",
+      "bus",
+      "बस स्टैंड",
+      "बस स्थानक",
+      "एसटी स्टँड"
     ],
     "category": "transport",
     "lat": 19.938155,
@@ -2353,7 +2406,16 @@
     "aliases": [
       "tapovan depot",
       "tapovan bus stand",
-      "tapovan city bus"
+      "tapovan city bus",
+      "bus stand",
+      "bus station",
+      "st stand",
+      "st bus",
+      "msrtc",
+      "bus",
+      "बस स्टैंड",
+      "बस स्थानक",
+      "एसटी स्टँड"
     ],
     "category": "transport",
     "lat": 20.008274,
@@ -2382,7 +2444,12 @@
       "ojhar airport",
       "nashik airport",
       "vimantal",
-      "hawai adda"
+      "hawai adda",
+      "airport",
+      "flight",
+      "plane",
+      "हवाई अड्डा",
+      "विमानतळ"
     ],
     "category": "transport",
     "lat": 20.11302,
@@ -2409,7 +2476,16 @@
     "aliases": [
       "devlali station",
       "deolali station",
-      "devlali railway"
+      "devlali railway",
+      "railway station",
+      "train station",
+      "train",
+      "railway",
+      "station",
+      "rail",
+      "ट्रेन",
+      "रेलवे स्टेशन",
+      "रेल्वे स्थानक"
     ],
     "category": "transport",
     "lat": 19.89655,
@@ -2435,7 +2511,16 @@
     },
     "aliases": [
       "odha station",
-      "odha railway"
+      "odha railway",
+      "railway station",
+      "train station",
+      "train",
+      "railway",
+      "station",
+      "rail",
+      "ट्रेन",
+      "रेलवे स्टेशन",
+      "रेल्वे स्थानक"
     ],
     "category": "transport",
     "lat": 20.0178,
@@ -2461,7 +2546,16 @@
     },
     "aliases": [
       "satpur bus",
-      "satpur st stand"
+      "satpur st stand",
+      "bus stand",
+      "bus station",
+      "st stand",
+      "st bus",
+      "msrtc",
+      "bus",
+      "बस स्टैंड",
+      "बस स्थानक",
+      "एसटी स्टँड"
     ],
     "category": "transport",
     "lat": 19.99106,
@@ -2489,7 +2583,16 @@
       "private bus",
       "travels bus",
       "luxury bus",
-      "khajgi bus"
+      "khajgi bus",
+      "bus stand",
+      "bus station",
+      "st stand",
+      "st bus",
+      "msrtc",
+      "bus",
+      "बस स्टैंड",
+      "बस स्थानक",
+      "एसटी स्टँड"
     ],
     "category": "transport",
     "lat": 19.98944,
@@ -3450,6 +3553,729 @@
       "by": "claude-osm",
       "on": "2026-09-16",
       "source": "https://www.openstreetmap.org/node/13477059851"
+    }
+  },
+  {
+    "id": "auto-stand-nashik-road-station",
+    "name": {
+      "en": "Auto Rickshaw Stand, Nashik Road Station",
+      "hi": "ऑटो रिक्शा स्टैंड, नासिक रोड स्टेशन",
+      "mr": "ऑटो रिक्षा स्टँड, नाशिक रोड स्टेशन"
+    },
+    "aliases": [
+      "auto stand",
+      "rickshaw stand",
+      "auto rickshaw",
+      "rickshaw",
+      "auto",
+      "taxi",
+      "ऑटो स्टैंड",
+      "रिक्षा स्टँड"
+    ],
+    "category": "transport",
+    "lat": 19.94787,
+    "lng": 73.84141,
+    "area": "Nashik Road",
+    "description": {
+      "en": "Auto rickshaw stand outside Nashik Road railway station.",
+      "hi": "नासिक रोड रेलवे स्टेशन के बाहर ऑटो रिक्शा स्टैंड।",
+      "mr": "नाशिक रोड रेल्वे स्थानकाबाहेरील ऑटो रिक्षा स्टँड."
+    },
+    "open24x7": true,
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13484807839"
+    }
+  },
+  {
+    "id": "tapovan-city-bus-depot",
+    "name": {
+      "en": "Tapovan City Bus Depot",
+      "hi": "तपोवन सिटी बस डिपो",
+      "mr": "तपोवन सिटी बस डेपो"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 20.00961,
+    "lng": 73.80971,
+    "area": "Tapovan",
+    "description": {
+      "en": "Depot for Nashik city buses (Citilinc) in Tapovan.",
+      "hi": "तपोवन में नासिक सिटी बसों (सिटीलिंक) का डिपो।",
+      "mr": "तपोवन मधील नाशिक शहर बसचे (सिटीलिंक) डेपो."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/way/1336447072"
+    }
+  },
+  {
+    "id": "bus-stop-raviwar-karanja",
+    "name": {
+      "en": "Raviwar Karanja Bus Stop",
+      "hi": "रविवार कारंजा बस स्टॉप",
+      "mr": "रविवार कारंजा बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 20.00567,
+    "lng": 73.78809,
+    "area": "Panchavati",
+    "description": {
+      "en": "City bus stop in Panchavati. Nashik city buses (Citilinc) stop here.",
+      "hi": "पंचवटी में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "पंचवटी मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13475353248"
+    }
+  },
+  {
+    "id": "bus-stop-panchavati-karanja",
+    "name": {
+      "en": "Panchavati Karanja Bus Stop",
+      "hi": "पंचवटी कारंजा बस स्टॉप",
+      "mr": "पंचवटी कारंजा बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 20.0098,
+    "lng": 73.79465,
+    "area": "Panchavati",
+    "description": {
+      "en": "City bus stop in Panchavati. Nashik city buses (Citilinc) stop here.",
+      "hi": "पंचवटी में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "पंचवटी मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13475353268"
+    }
+  },
+  {
+    "id": "bus-stop-shalimar",
+    "name": {
+      "en": "Shalimar Bus Stop",
+      "hi": "शालीमार बस स्टॉप",
+      "mr": "शालिमार बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 20.00053,
+    "lng": 73.78682,
+    "area": "City",
+    "description": {
+      "en": "City bus stop in City. Nashik city buses (Citilinc) stop here.",
+      "hi": "नासिक शहर में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "नाशिक शहर मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3318873527"
+    }
+  },
+  {
+    "id": "bus-stop-dwarka",
+    "name": {
+      "en": "Dwarka Bus Stop",
+      "hi": "द्वारका बस स्टॉप",
+      "mr": "द्वारका बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.99372,
+    "lng": 73.79718,
+    "area": "Dwarka",
+    "description": {
+      "en": "City bus stop in Dwarka. Nashik city buses (Citilinc) stop here.",
+      "hi": "द्वारका में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "द्वारका मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13481140115"
+    }
+  },
+  {
+    "id": "bus-stop-poornima",
+    "name": {
+      "en": "Poornima Bus Stop",
+      "hi": "पूर्णिमा बस स्टॉप",
+      "mr": "पौर्णिमा बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.9889,
+    "lng": 73.79976,
+    "area": "Dwarka",
+    "description": {
+      "en": "City bus stop in Dwarka. Nashik city buses (Citilinc) stop here.",
+      "hi": "द्वारका में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "द्वारका मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/14051285595"
+    }
+  },
+  {
+    "id": "bus-stop-govind-nagar",
+    "name": {
+      "en": "Govind Nagar Bus Stop",
+      "hi": "गोविंद नगर बस स्टॉप",
+      "mr": "गोविंद नगर बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.97899,
+    "lng": 73.7797,
+    "area": "City",
+    "description": {
+      "en": "City bus stop in City. Nashik city buses (Citilinc) stop here.",
+      "hi": "नासिक शहर में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "नाशिक शहर मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13481140111"
+    }
+  },
+  {
+    "id": "bus-stop-lekhanagar",
+    "name": {
+      "en": "Lekhanagar Bus Stop",
+      "hi": "लेखानगर बस स्टॉप",
+      "mr": "लेखानगर बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.97298,
+    "lng": 73.77324,
+    "area": "Cidco",
+    "description": {
+      "en": "City bus stop in Cidco. Nashik city buses (Citilinc) stop here.",
+      "hi": "सिडको में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "सिडको मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13481140135"
+    }
+  },
+  {
+    "id": "bus-stop-state-bank-chowk",
+    "name": {
+      "en": "State Bank Bus Stop",
+      "hi": "स्टेट बैंक बस स्टॉप",
+      "mr": "स्टेट बँक बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.96807,
+    "lng": 73.7688,
+    "area": "Cidco",
+    "description": {
+      "en": "City bus stop in Cidco. Nashik city buses (Citilinc) stop here.",
+      "hi": "सिडको में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "सिडको मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13481140155"
+    }
+  },
+  {
+    "id": "bus-stop-pathardi-phata",
+    "name": {
+      "en": "Pathardi Phata Bus Stop",
+      "hi": "पाथर्डी फाटा बस स्टॉप",
+      "mr": "पाथर्डी फाटा बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.95619,
+    "lng": 73.75798,
+    "area": "Pathardi",
+    "description": {
+      "en": "City bus stop in Pathardi. Nashik city buses (Citilinc) stop here.",
+      "hi": "पाथर्डी में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "पाथर्डी मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13481140121"
+    }
+  },
+  {
+    "id": "bus-stop-garware",
+    "name": {
+      "en": "Garware Bus Stop",
+      "hi": "गरवारे बस स्टॉप",
+      "mr": "गरवारे बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.94438,
+    "lng": 73.74433,
+    "area": "Pathardi",
+    "description": {
+      "en": "City bus stop in Pathardi. Nashik city buses (Citilinc) stop here.",
+      "hi": "पाथर्डी में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "पाथर्डी मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13479339756"
+    }
+  },
+  {
+    "id": "bus-stop-ambad-jalkumbh",
+    "name": {
+      "en": "Ambad Jalkumbh Bus Stop",
+      "hi": "अंबड जलकुंभ बस स्टॉप",
+      "mr": "अंबड जलकुंभ बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.96312,
+    "lng": 73.74001,
+    "area": "Ambad",
+    "description": {
+      "en": "City bus stop in Ambad. Nashik city buses (Citilinc) stop here.",
+      "hi": "अंबड में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "अंबड मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13546459165"
+    }
+  },
+  {
+    "id": "bus-stop-nehru-nagar",
+    "name": {
+      "en": "Nehru Nagar Bus Stop",
+      "hi": "नेहरू नगर बस स्टॉप",
+      "mr": "नेहरू नगर बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.96462,
+    "lng": 73.82359,
+    "area": "Nashik Road",
+    "description": {
+      "en": "City bus stop in Nashik Road. Nashik city buses (Citilinc) stop here.",
+      "hi": "नासिक रोड में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "नाशिक रोड मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/13481140114"
+    }
+  },
+  {
+    "id": "bus-stop-dsouza-colony",
+    "name": {
+      "en": "Dsouza Colony Bus Stop",
+      "hi": "डिसूज़ा कॉलोनी बस स्टॉप",
+      "mr": "डिसूझा कॉलनी बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 20.00841,
+    "lng": 73.75574,
+    "area": "Gangapur Road",
+    "description": {
+      "en": "City bus stop in Gangapur Road. Nashik city buses (Citilinc) stop here.",
+      "hi": "गंगापुर रोड में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "गंगापूर रोड मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/14051896477"
+    }
+  },
+  {
+    "id": "bus-stop-ujwal-agency",
+    "name": {
+      "en": "Ujwal Agency Bus Stop",
+      "hi": "उज्ज्वल एजेंसी बस स्टॉप",
+      "mr": "उज्ज्वल एजन्सी बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.99245,
+    "lng": 73.74547,
+    "area": "Satpur",
+    "description": {
+      "en": "City bus stop in Satpur. Nashik city buses (Citilinc) stop here.",
+      "hi": "सातपुर में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "सातपूर मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3318747616"
+    }
+  },
+  {
+    "id": "bus-stop-satpur-police-station",
+    "name": {
+      "en": "Satpur Police Station Bus Stop",
+      "hi": "सातपुर पुलिस स्टेशन बस स्टॉप",
+      "mr": "सातपूर पोलीस ठाणे बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.99197,
+    "lng": 73.74273,
+    "area": "Satpur",
+    "description": {
+      "en": "City bus stop in Satpur. Nashik city buses (Citilinc) stop here.",
+      "hi": "सातपुर में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "सातपूर मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3318747603"
+    }
+  },
+  {
+    "id": "bus-stop-satpur-municipal-office",
+    "name": {
+      "en": "Satpur Municipal Office Bus Stop",
+      "hi": "सातपुर महानगरपालिका बस स्टॉप",
+      "mr": "सातपूर महानगरपालिका बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.9913,
+    "lng": 73.73694,
+    "area": "Satpur",
+    "description": {
+      "en": "City bus stop in Satpur. Nashik city buses (Citilinc) stop here.",
+      "hi": "सातपुर में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "सातपूर मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3318747602"
+    }
+  },
+  {
+    "id": "bus-stop-satpur-colony",
+    "name": {
+      "en": "Satpur Colony Bus Stop",
+      "hi": "सातपुर कॉलोनी बस स्टॉप",
+      "mr": "सातपूर कॉलनी बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.98946,
+    "lng": 73.72418,
+    "area": "Satpur",
+    "description": {
+      "en": "City bus stop in Satpur. Nashik city buses (Citilinc) stop here.",
+      "hi": "सातपुर में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "सातपूर मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3318747599"
+    }
+  },
+  {
+    "id": "bus-stop-anandchaya",
+    "name": {
+      "en": "Anandchaya Bus Stop",
+      "hi": "आनंदछाया बस स्टॉप",
+      "mr": "आनंदछाया बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.98948,
+    "lng": 73.72153,
+    "area": "Satpur",
+    "description": {
+      "en": "City bus stop in Satpur. Nashik city buses (Citilinc) stop here.",
+      "hi": "सातपुर में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "सातपूर मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3318747598"
+    }
+  },
+  {
+    "id": "bus-stop-savarkar-nagar",
+    "name": {
+      "en": "Savarkar Nagar Bus Stop",
+      "hi": "सावरकर नगर बस स्टॉप",
+      "mr": "सावरकर नगर बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.98862,
+    "lng": 73.71915,
+    "area": "Satpur",
+    "description": {
+      "en": "City bus stop in Satpur. Nashik city buses (Citilinc) stop here.",
+      "hi": "सातपुर में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "सातपूर मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3318747597"
+    }
+  },
+  {
+    "id": "bus-stop-ashok-nagar",
+    "name": {
+      "en": "Ashok Nagar Bus Stop",
+      "hi": "अशोक नगर बस स्टॉप",
+      "mr": "अशोक नगर बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.99044,
+    "lng": 73.71287,
+    "area": "Satpur",
+    "description": {
+      "en": "City bus stop in Satpur. Nashik city buses (Citilinc) stop here.",
+      "hi": "सातपुर में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "सातपूर मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3318747593"
+    }
+  },
+  {
+    "id": "bus-stop-shramik-nagar",
+    "name": {
+      "en": "Shramik Nagar Bus Stop",
+      "hi": "श्रमिक नगर बस स्टॉप",
+      "mr": "श्रमिक नगर बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 19.99618,
+    "lng": 73.71158,
+    "area": "Satpur",
+    "description": {
+      "en": "City bus stop in Satpur. Nashik city buses (Citilinc) stop here.",
+      "hi": "सातपुर में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "सातपूर मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3318747594"
+    }
+  },
+  {
+    "id": "bus-stop-shivaji-nagar-satpur",
+    "name": {
+      "en": "Shivaji Nagar Bus Stop",
+      "hi": "शिवाजी नगर बस स्टॉप",
+      "mr": "शिवाजी नगर बस थांबा"
+    },
+    "aliases": [
+      "bus stop",
+      "city bus",
+      "citilinc",
+      "bus",
+      "बस स्टॉप",
+      "बस थांबा"
+    ],
+    "category": "transport",
+    "lat": 20.00531,
+    "lng": 73.71161,
+    "area": "Satpur",
+    "description": {
+      "en": "City bus stop in Satpur. Nashik city buses (Citilinc) stop here.",
+      "hi": "सातपुर में सिटी बस स्टॉप। नासिक सिटी बसें (सिटीलिंक) यहाँ रुकती हैं।",
+      "mr": "सातपूर मधील शहर बस थांबा. नाशिक शहर बस (सिटीलिंक) येथे थांबतात."
+    },
+    "verified": {
+      "by": "claude-osm",
+      "on": "2026-09-16",
+      "source": "https://www.openstreetmap.org/node/3318747595"
     }
   }
 ]
