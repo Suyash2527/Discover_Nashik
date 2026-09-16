@@ -54,51 +54,49 @@ function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
 }
 
+function severityLabel(lang: Lang, s: Severity) {
+  return s === "closed" ? pick(lang, "Closed", "बंद", "बंद")
+    : s === "warning" ? pick(lang, "Warning", "चेतावनी", "इशारा")
+    : pick(lang, "Notice", "सूचना", "सूचना");
+}
+
+/** Slim strip over the top of the map: most severe advisory first, tap "+N" to see the rest. */
 export default function AdvisoryBanner({ advisories, places, lang, onSelectPlace }: {
   advisories: Advisory[]; places: Place[]; lang: Lang; onSelectPlace: (p: Place) => void;
 }) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState(false);
   const shown = advisories.filter((a) => !dismissed.has(a.id));
   if (shown.length === 0) return null;
+  const rows = expanded ? shown : shown.slice(0, 1);
+  const more = shown.length - 1;
 
   return (
-    <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex flex-col gap-2 md:inset-x-auto md:right-4 md:w-[380px]">
-      {shown.slice(0, 3).map((a) => {
+    <div className="absolute inset-x-2 top-2 z-20 overflow-hidden rounded-md border border-rule bg-card shadow-[0_6px_18px_-10px_rgba(29,25,21,.55)] md:inset-x-auto md:right-3 md:w-[380px]">
+      {rows.map((a, i) => {
         const place = places.find((p) => p.id === a.placeId);
+        const color = SEVERITY_COLOR[a.severity];
         return (
-          <div
-            key={a.id}
-            role="alert"
-            className="rise pointer-events-auto flex items-start gap-3 rounded-md border-l-4 bg-card py-2.5 pr-2 pl-3 shadow-[0_4px_16px_-8px_rgba(29,25,21,.45)]"
-            style={{ borderLeftColor: SEVERITY_COLOR[a.severity] }}
-          >
-            <span className="mt-0.5 shrink-0" style={{ color: SEVERITY_COLOR[a.severity] }}>
-              <AlertCircleIcon size={22} />
-            </span>
-            <button
-              className="min-w-0 flex-1 text-left"
-              onClick={() => place && onSelectPlace(place)}
-              disabled={!place}
-            >
-              <p className="kicker" style={{ color: SEVERITY_COLOR[a.severity] }}>
-                {a.severity === "closed"
-                  ? pick(lang, "Closed", "बंद", "बंद")
-                  : a.severity === "warning"
-                    ? pick(lang, "Warning", "चेतावनी", "इशारा")
-                    : pick(lang, "Notice", "सूचना", "सूचना")}
-                {place ? ` · ${loc(lang, place.name)}` : ""}
-              </p>
-              <p className="text-[16px] leading-snug font-medium">{loc(lang, a.message)}</p>
-              <p className="tnum text-[13px] text-muted">
-                {pick(lang, "Until", "तक", "पर्यंत")} {fmtTime(a.endsAt)}
-              </p>
+          <div key={a.id} role="alert" className={`flex items-center gap-2 py-1.5 pr-1 pl-2.5 ${i ? "border-t border-rule" : ""}`} style={{ boxShadow: `inset 3px 0 0 ${color}` }}>
+            <span className="shrink-0" style={{ color }}><AlertCircleIcon size={18} /></span>
+            <button className="min-w-0 flex-1 text-left" onClick={() => place && onSelectPlace(place)} disabled={!place}>
+              <span className="block truncate text-[15px] leading-tight font-semibold">{loc(lang, a.message)}</span>
+              <span className="block truncate text-[12px] leading-tight text-muted">
+                <span className="font-semibold uppercase" style={{ color }}>{severityLabel(lang, a.severity)}</span>
+                {place ? ` · ${loc(lang, place.name)}` : ""} · {pick(lang, "until", "तक", "पर्यंत")} <span className="tnum">{fmtTime(a.endsAt)}</span>
+              </span>
             </button>
+            {i === 0 && more > 0 && (
+              <button onClick={() => setExpanded((e) => !e)} className="tnum shrink-0 rounded-full border border-rule px-2 py-0.5 text-[13px] font-semibold" aria-expanded={expanded}>
+                {expanded ? "–" : `+${more}`}
+              </button>
+            )}
             <button
               onClick={() => setDismissed((s) => new Set(s).add(a.id))}
               aria-label="Dismiss"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted active:bg-paper-2"
             >
-              <XIcon size={18} />
+              <XIcon size={16} />
             </button>
           </div>
         );

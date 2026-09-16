@@ -39,7 +39,7 @@ function Pin({ category, active, alert }: { category: Category; active: boolean;
       {alert && (
         <span
           aria-label={`advisory: ${alert}`}
-          className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-card text-[10px] leading-none font-bold text-white"
+          className="absolute -top-2 -right-2 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-white text-[11px] leading-none font-bold text-white shadow"
           style={{ backgroundColor: SEVERITY_COLOR[alert] }}
         >
           !
@@ -57,9 +57,12 @@ function MapController({ focus, places, userPos, onReady }: {
   useEffect(() => {
     if (!map) return;
     onReady();
+    // Open on the city core. Fitting every place pulls in Trimbakeshwar (~30 km)
+    // and collapses the Panchavati pins into one unreadable clump.
     const b = new google.maps.LatLngBounds();
-    places.forEach((p) => b.extend(p));
-    map.fitBounds(b, 40);
+    places.filter((p) => haversineKm(NASHIK_CENTER, p) <= 6).forEach((p) => b.extend(p));
+    if (b.isEmpty()) map.setCenter(NASHIK_CENTER);
+    else map.fitBounds(b, 32);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map]);
 
