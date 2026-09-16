@@ -1,5 +1,5 @@
 // Discover Nashik Service Worker (PWA Offline Support)
-const CACHE_NAME = "discover-nashik-v2";
+const CACHE_NAME = "discover-nashik-v3";
 const PRECACHE_ASSETS = [
   "/",
   "/manifest.webmanifest",
@@ -36,6 +36,10 @@ self.addEventListener("fetch", (event) => {
 
   // Skip non-GET requests
   if (event.request.method !== "GET") return;
+
+  // Never cache on localhost: dev chunks keep the same URL between edits, so
+  // cache-first would serve stale JavaScript against fresh HTML.
+  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return;
 
   // Don't intercept API calls or Google Maps tiles/SDK requests
   if (
