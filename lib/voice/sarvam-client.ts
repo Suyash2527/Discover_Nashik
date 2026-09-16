@@ -23,10 +23,46 @@ export interface RecordingHandle {
   stop: () => void;
 }
 
+function encodeWAV(chunks: Float32Array[], sampleRate: number): Blob {
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const buffer = new ArrayBuffer(44 + totalLength * 2);
+  const view = new DataView(buffer);
+
+  const writeString = (offset: number, string: string) => {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  };
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + totalLength * 2, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // Mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, totalLength * 2, true);
+
+  let offset = 44;
+  for (const chunk of chunks) {
+    for (let i = 0; i < chunk.length; i++, offset += 2) {
+      const s = Math.max(-1, Math.min(1, chunk[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+  }
+
+  return new Blob([view], { type: 'audio/wav' });
+}
+
 export function isRecordingSupported(): boolean {
   return (
     typeof window !== "undefined" &&
-    typeof MediaRecorder !== "undefined" &&
+    (typeof window.AudioContext !== "undefined" || typeof (window as any).webkitAudioContext !== "undefined") &&
     Boolean(navigator.mediaDevices?.getUserMedia)
   );
 }
@@ -50,18 +86,29 @@ export function recordUtterance(): RecordingHandle {
       return null;
     }
 
-    const chunks: Blob[] = [];
-    const recorder = new MediaRecorder(stream);
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) chunks.push(event.data);
-    };
+    // Capture raw PCM with a ScriptProcessorNode (MediaRecorder gives WebM,
+    // which Sarvam STT rejects).
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const audioContext = new AudioContextClass({ sampleRate: 16000 });
+    const source = audioContext.createMediaStreamSource(stream);
 
-    // Silence detection. An AnalyserNode is cheap and, unlike a fixed-length
-    // recording, lets a short question ("शौचालय कुठे?") finish in ~2 s.
-    const audioContext = new AudioContext();
+    // 1. Recording
+    const processor = audioContext.createScriptProcessor(4096, 1, 1);
+    const audioChunks: Float32Array[] = [];
+    processor.onaudioprocess = (e) => {
+      audioChunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+    };
+    source.connect(processor);
+    // Connect to destination via 0-gain to keep the processor running in Chrome
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = 0;
+    processor.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // 2. Silence detection
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;
-    audioContext.createMediaStreamSource(stream).connect(analyser);
+    source.connect(analyser);
     const samples = new Float32Array(analyser.fftSize);
 
     let heardSpeech = false;
@@ -73,7 +120,11 @@ export function recordUtterance(): RecordingHandle {
       finished = true;
       clearInterval(monitor);
       clearTimeout(deadline);
-      if (recorder.state !== "inactive") recorder.stop();
+      
+      processor.disconnect();
+      gainNode.disconnect();
+      source.disconnect();
+      
       stream.getTracks().forEach((track) => track.stop());
       void audioContext.close().catch(() => {});
     };
@@ -97,17 +148,21 @@ export function recordUtterance(): RecordingHandle {
 
     const deadline = setTimeout(finish, MAX_RECORD_MS);
 
-    const blob = await new Promise<Blob | null>((resolve) => {
-      recorder.onstop = () => {
-        resolve(chunks.length ? new Blob(chunks, { type: recorder.mimeType || "audio/webm" }) : null);
-      };
-      recorder.start();
+    // Wait until `finish()` runs (either from silence timeout or max duration)
+    await new Promise<void>((resolve) => {
+      const wait = setInterval(() => {
+        if (finished) {
+          clearInterval(wait);
+          resolve();
+        }
+      }, 50);
     });
 
-    finish();
     // Nothing above the noise floor: treat as no-speech rather than shipping
     // a second of crowd hiss to Sarvam.
-    return heardSpeech && blob && blob.size > 0 ? blob : null;
+    if (!heardSpeech || audioChunks.length === 0) return null;
+
+    return encodeWAV(audioChunks, audioContext.sampleRate);
   })();
 
   return { done, stop: () => stopFn() };
@@ -158,7 +213,7 @@ export async function transcribeViaSarvam(audio: Blob, lang: Lang): Promise<stri
   if (isSarvamKnownDown()) return "";
   try {
     const form = new FormData();
-    form.append("audio", audio, "audio.webm");
+    form.append("audio", audio, "audio.wav");
     form.append("lang", lang);
 
     const response = await fetch("/api/voice/stt", { method: "POST", body: form });

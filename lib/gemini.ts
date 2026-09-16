@@ -9,6 +9,7 @@
 // Both modes are capped at 2 sentences and pinned to the request language.
 import { GoogleGenAI } from "@google/genai";
 import type { Lang, Place } from "@/types";
+import { formatDistanceKm, haversineKm, type LatLng } from "./geo";
 import { normalize } from "./text";
 
 /**
@@ -110,6 +111,39 @@ const GENERAL_MARKERS = [
   "इतिहास", "महत्त्व", "सांगा",
 ];
 
+/**
+ * Phrases that ask "how far / how near / what distance".
+ *
+ * Multi-word on purpose. The bare quantifiers किती and कितना are already
+ * GENERAL_MARKERS ("how much should I carry"), so only the distance-bearing
+ * pairs belong here — otherwise every "how many" question would be dragged
+ * into place mode.
+ */
+const DISTANCE_MARKERS = [
+  // English
+  "how far", "how near", "how close", "how long from", "distance to",
+  "distance from", "far is", "far away", "how do i reach", "how to reach",
+  "how do i get to", "way to",
+  // Hindi
+  "कितनी दूर", "कितना दूर", "दूरी", "कितने किलोमीटर", "कैसे पहुंचें",
+  "कैसे पहुँचें", "कैसे जाऊं", "रास्ता",
+  // Marathi
+  "किती लांब", "किती दूर", "अंतर", "किती किलोमीटर", "कसे जायचे",
+  "कसं जायचं", "कुठून जायचे", "वाट",
+];
+
+/**
+ * Is this a "how far is X" question?
+ *
+ * Kept separate from looksGeneral() because it outranks it: distance is the one
+ * thing a pilgrim asks that general knowledge can NEVER supply. See
+ * classifyAnswerMode().
+ */
+export function asksDistance(query: string): boolean {
+  const q = ` ${normalize(query)} `;
+  return DISTANCE_MARKERS.some((marker) => q.includes(` ${normalize(marker)}`));
+}
+
 function looksGeneral(query: string): boolean {
   const q = ` ${normalize(query)} `;
   return GENERAL_MARKERS.some((marker) => q.includes(` ${normalize(marker)}`));
@@ -128,6 +162,15 @@ function looksGeneral(query: string): boolean {
 export function classifyAnswerMode(query: string, topScore: number): AnswerMode {
   if (topScore <= 0) return "general";
   if (topScore >= NAME_MATCH_FLOOR) return "grounded";
+
+  // A distance question is always about a place, so if retrieval found
+  // ANYTHING it must be answered from it. Without this, "त्र्यंबकेश्वर किती
+  // लांब आहे" scored 40 — the name diluted by three surrounding words — then
+  // matched the general marker किती and was answered "I need an internet
+  // connection", discarding the trimbakeshwar-temple hit retrieval had already
+  // made. There is no general-knowledge answer to "how far is it from me".
+  if (asksDistance(query)) return "grounded";
+
   return looksGeneral(query) ? "general" : "grounded";
 }
 
@@ -135,16 +178,31 @@ export function classifyAnswerMode(query: string, topScore: number): AnswerMode 
 // Prompting
 // ---------------------------------------------------------------------------
 
+/**
+ * "1.2 km" / "300 m" from the pilgrim to a place, or null with no fix.
+ *
+ * Straight-line, and labelled as such in the prompt: we have no routing engine
+ * and the lanes around the ghats are nothing like straight. Telling Gemini it
+ * is a direct distance stops it presenting a 900 m crow-flight as a 900 m walk.
+ */
+function distanceFact(place: Place, origin?: LatLng): string | null {
+  if (!origin) return null;
+  const { value, unit } = formatDistanceKm(haversineKm(origin, place));
+  return `${value} ${unit}`;
+}
+
 /** The retrieved places, flattened into facts Gemini may quote. */
-function renderContext(places: Place[], lang: Lang): string {
+function renderContext(places: Place[], lang: Lang, origin?: LatLng): string {
   const key = langKey(lang);
   return places
     .map((p, i) => {
+      const distance = distanceFact(p, origin);
       const bits = [
         `${i + 1}. id=${p.id}`,
         `name=${p.name[key]} (en: ${p.name.en})`,
         `category=${p.category}`,
         `area=${p.area}`,
+        ...(distance ? [`straight-line distance from the pilgrim=${distance}`] : []),
         `description=${p.description[key]}`,
       ];
       if (p.timings) bits.push(`timings=${p.timings}`);
@@ -165,18 +223,44 @@ function commonRules(lang: Lang): string[] {
   ];
 }
 
-function buildGroundedPrompt(query: string, lang: Lang, places: Place[]): string {
+/**
+ * How to talk about distance — only ever added when we actually have a fix.
+ *
+ * "How far is it" is one of the most common things a pilgrim asks, and until
+ * the hook started sending coordinates there was simply no number to answer it
+ * with. With no fix these rules are omitted entirely rather than softened: a
+ * prompt that mentions distance while the context has none invites the model to
+ * estimate one, and a confidently invented "about 2 km" is exactly the failure
+ * this file's other rules exist to prevent.
+ */
+function distanceRules(places: Place[], origin?: LatLng): string[] {
+  if (!origin || places.length === 0) return [];
+  return [
+    "- The pilgrim's location is known. If they ask how far, how near, or how",
+    "  to reach a place, LEAD with the straight-line distance given above.",
+    "- Call it a straight-line or direct distance, never a walking distance,",
+    "  and do NOT invent a walking time, a route, turns, or street names.",
+  ];
+}
+
+function buildGroundedPrompt(
+  query: string,
+  lang: Lang,
+  places: Place[],
+  origin?: LatLng,
+): string {
   return [
     "You are the voice guide for Kumbh pilgrims in Nashik, India.",
     "",
     "PLACES (the only facts you may use):",
-    places.length ? renderContext(places, lang) : "(none)",
+    places.length ? renderContext(places, lang, origin) : "(none)",
     "",
     `PILGRIM'S QUESTION: ${query}`,
     "",
     "RULES — follow all of them:",
     "- Answer ONLY using the PLACES listed above. Use no other knowledge.",
     "- NEVER invent, guess or mention a place that is not in the list above.",
+    ...distanceRules(places, origin),
     ...commonRules(lang),
     "- If the PLACES do not answer the question, say so in one short sentence.",
   ].join("\n");
@@ -190,14 +274,19 @@ function buildGroundedPrompt(query: string, lang: Lang, places: Place[]): string
  * pilgrim sent to a hospital that does not exist, or given a made-up helpline.
  * Vague advice that turns out to be generic is a much cheaper failure.
  */
-function buildGeneralPrompt(query: string, lang: Lang, places: Place[]): string {
+function buildGeneralPrompt(
+  query: string,
+  lang: Lang,
+  places: Place[],
+  origin?: LatLng,
+): string {
   return [
     "You are a helpful assistant for pilgrims at the Kumbh Mela in Nashik, India.",
     "",
     places.length
       ? "PLACES FROM OUR DATA (you may mention these by name; they may not be relevant):"
       : "PLACES FROM OUR DATA: (none matched this question)",
-    places.length ? renderContext(places, lang) : "",
+    places.length ? renderContext(places, lang, origin) : "",
     "",
     `PILGRIM'S QUESTION: ${query}`,
     "",
@@ -213,6 +302,7 @@ function buildGeneralPrompt(query: string, lang: Lang, places: Place[]): string 
     "  where it is, and do NOT describe it.",
     "- Do not give medical diagnosis or emergency instructions beyond advising",
     "  they seek help; for an emergency, tell them to contact on-site officials.",
+    ...distanceRules(places, origin),
     ...commonRules(lang),
   ]
     .filter(Boolean)
@@ -274,8 +364,9 @@ export async function answerWithGemini(
   query: string,
   lang: Lang,
   contextPlaces: Place[],
+  origin?: LatLng,
 ): Promise<string> {
-  return generate(buildGroundedPrompt(query, lang, contextPlaces));
+  return generate(buildGroundedPrompt(query, lang, contextPlaces, origin));
 }
 
 /**
@@ -287,30 +378,9 @@ export async function answerGeneralWithGemini(
   query: string,
   lang: Lang,
   contextPlaces: Place[] = [],
+  origin?: LatLng,
 ): Promise<string> {
-  return generate(buildGeneralPrompt(query, lang, contextPlaces));
+  return generate(buildGeneralPrompt(query, lang, contextPlaces, origin));
 }
 
-// ---------------------------------------------------------------------------
-// Offline counterpart for general questions
-// ---------------------------------------------------------------------------
-
-/**
- * Lives here rather than in lib/intent-offline.ts because it is the direct
- * counterpart of answerGeneralWithGemini: a general question cannot be answered
- * from data/places.json at all, so there is no template to fall back to — only
- * an honest "I need the network for this one".
- *
- * This must NOT read like "place not found": the pilgrim asked about customs or
- * safety, not about a place, and a "not in my list" reply would be a
- * non-sequitur.
- */
-const GENERAL_OFFLINE: Record<LangKey, string> = {
-  en: "I need an internet connection to answer that one. You can still ask me to find places nearby — that works offline.",
-  hi: "इसका उत्तर देने के लिए मुझे इंटरनेट की आवश्यकता है। आप मुझसे आस-पास की जगहें अब भी पूछ सकते हैं — वह ऑफ़लाइन काम करता है।",
-  mr: "याचे उत्तर देण्यासाठी मला इंटरनेट लागेल. जवळची ठिकाणे तुम्ही आताही विचारू शकता — ते ऑफलाइन चालते.",
-};
-
-export function generalOfflineAnswer(lang: Lang): string {
-  return GENERAL_OFFLINE[langKey(lang)];
-}
+export { generalOfflineAnswer } from "./intent-offline";

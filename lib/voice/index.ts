@@ -9,16 +9,18 @@
 //   ask()  -> POST /api/ask (thinking) -> answer + placeIds
 //     -> speechSynthesis (speaking) -> idle
 //
-// Sarvam AI is a fallback on both ends, never the primary path:
-//   - listening: only when SpeechRecognition is absent, or has returned
-//     no-speech NO_SPEECH_LIMIT times in a row
-//   - speaking: only when speechSynthesis has no voice for the current
-//     language (the mr-IN case — see lib/voice/tts.ts)
+// Sarvam AI is the primary path online, and Web Speech is an offline fallback:
+//   - listening: Sarvam STT is always used online. Web Speech is used offline.
+//   - speaking: Sarvam TTS is always used online. Web Speech is used offline.
 // If SARVAM_API_KEY is unset or the API is down, both routes answer and every
 // path here degrades back to exactly the previous Web Speech behaviour.
 //
 // The language sent to /api/ask is the language DETECTED in the utterance, not
 // the one on the UI toggle — see applyDetectedLang() and lib/voice/detect-lang.ts.
+//
+// Every question also carries the pilgrim's coordinates when we have them, so
+// "how far is Ramkund" gets an actual distance instead of a description. The fix
+// is started on the mic tap and merely collected here — see lib/geolocation.ts.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AskRequest, AskResponse, Lang, VoiceAssistant, VoiceState } from "@/types";
 import {
@@ -35,9 +37,12 @@ import {
   transcribeViaSarvam,
   type RecordingHandle,
 } from "./sarvam-client";
+import { getUserPosition, warmUserPosition } from "../geolocation";
 import { detectLang } from "./detect-lang";
 import { correctTranscript } from "./stt-corrections";
 import { cancelSpeech, shouldUseExternalVoice, speak } from "./tts";
+import { retrieveScored } from "../rag";
+import { answerOffline, generalOfflineAnswer } from "../intent-offline";
 
 const DEFAULT_LANG: Lang = "mr-IN";
 
@@ -139,59 +144,8 @@ export function useVoiceAssistant(): VoiceAssistant {
     setState("error");
   }, []);
 
-  /** Typed-input path, and the destination of every recognised utterance. */
-  const ask = useCallback(
-    async (text: string) => {
-      const query = text.trim();
-      if (!query) return;
-
-      setTranscript(query);
-      setState("thinking");
-      setAnswer("");
-      setPlaceIds([]);
-
-      const activeLang = langRef.current;
-      let result: AskResponse;
-
-      try {
-        const body: AskRequest = { query, lang: activeLang };
-        const response = await fetch("/api/ask", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!response.ok) throw new Error(`/api/ask responded ${response.status}`);
-        result = (await response.json()) as AskResponse;
-      } catch (error) {
-        console.error("[voice] ask failed:", error);
-        fail("failed");
-        return;
-      }
-
-      if (!mountedRef.current) return;
-
-      setAnswer(result.answer);
-      setPlaceIds(result.placeIds ?? []);
-      setState("speaking");
-
-      await speakAnswer(result.answer, activeLang);
-
-      // Only fall back to idle if nothing else has taken over — a new question
-      // may have arrived while we were speaking.
-      if (mountedRef.current) setState((prev) => (prev === "speaking" ? "idle" : prev));
-    },
-    [fail],
-  );
-
-  // Assigned in an effect, not during render: a render-phase ref write is
-  // unsafe under concurrent rendering / StrictMode. Recogniser callbacks only
-  // read this after mount, so the effect always lands first.
-  useEffect(() => {
-    askRef.current = ask;
-  }, [ask]);
-
   /**
-   * Everything between "we have a final transcript" and "ask the server".
+   * Everything between "we have a raw transcript" and "ask the server".
    *
    * Order matters: detect on the RAW transcript, then correct. correctTranscript
    * writes place names in the script of the language it is given, so correcting
@@ -205,6 +159,12 @@ export function useVoiceAssistant(): VoiceAssistant {
   const applyDetectedLang = useCallback((raw: string): string => {
     const uiLang = langRef.current;
     const detection = detectLang(raw, uiLang);
+
+    if (!detection.confident) {
+      console.warn(
+        `[voice] language detection ambiguous for "${raw}" — guessing ${detection.lang} (fallback ${uiLang}): ${detection.reason}`,
+      );
+    }
 
     if (detection.lang !== uiLang) {
       console.info(
@@ -220,6 +180,91 @@ export function useVoiceAssistant(): VoiceAssistant {
     }
     return corrected;
   }, []);
+
+  /** Typed-input path, and the destination of every recognised utterance. */
+  const ask = useCallback(
+    async (text: string) => {
+      const raw = text.trim();
+      if (!raw) return;
+
+      const query = applyDetectedLang(raw);
+
+      setTranscript(query);
+      setState("thinking");
+      setAnswer("");
+      setPlaceIds([]);
+
+      const activeLang = langRef.current;
+      let result: AskResponse;
+
+      // Whatever warmUserPosition() managed to acquire while they were talking.
+      // null is routine (permission refused, no fix indoors) and simply costs
+      // the distance phrasing — /api/ask treats origin as optional throughout.
+      const here = await getUserPosition();
+      if (!mountedRef.current) return;
+
+      const getOfflineAnswer = (): AskResponse => {
+        const scored = retrieveScored(query, activeLang);
+        const places = scored.map((s) => s.place);
+        const topScore = scored[0]?.score ?? 0;
+        const isGrounded = topScore > 0;
+        const ans = isGrounded && places.length > 0
+          ? answerOffline(query, activeLang, places, here ?? undefined)
+          : generalOfflineAnswer(activeLang);
+
+        return {
+          answer: ans,
+          placeIds: isGrounded ? places.map((p) => p.id) : [],
+          source: "offline",
+        };
+      };
+
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (isOffline) {
+        console.info("[voice] Fully offline — serving local offline template");
+        result = getOfflineAnswer();
+      } else {
+        try {
+          const body: AskRequest = {
+            query,
+            lang: activeLang,
+            ...(here && { lat: here.lat, lng: here.lng }),
+          };
+          const response = await fetch("/api/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (!response.ok) throw new Error(`/api/ask responded ${response.status}`);
+          result = (await response.json()) as AskResponse;
+        } catch (error) {
+          console.warn("[voice] ask fetch failed offline, serving local answer:", error);
+          result = getOfflineAnswer();
+        }
+      }
+
+      if (!mountedRef.current) return;
+
+      setAnswer(result.answer);
+      setPlaceIds(result.placeIds ?? []);
+      setState("speaking");
+
+      await speakAnswer(result.answer, activeLang);
+
+      // Only fall back to idle if nothing else has taken over — a new question
+      // may have arrived while we were speaking.
+      if (mountedRef.current) setState((prev) => (prev === "speaking" ? "idle" : prev));
+    },
+    [applyDetectedLang, fail],
+  );
+
+  // Assigned in an effect, not during render: a render-phase ref write is
+  // unsafe under concurrent rendering / StrictMode. Recogniser callbacks only
+  // read this after mount, so the effect always lands first.
+  useEffect(() => {
+    askRef.current = ask;
+  }, [ask]);
 
   /**
    * Record the utterance ourselves and send it to Sarvam.
@@ -265,24 +310,40 @@ export function useVoiceAssistant(): VoiceAssistant {
     }
 
     noSpeechStreakRef.current = 0;
-    const corrected = applyDetectedLang(transcribed);
-    setTranscript(corrected);
-    void askRef.current(corrected);
-  }, [applyDetectedLang, fail]);
+    void askRef.current(transcribed);
+  }, [fail]);
 
   const start = useCallback(() => {
+    // On the tap, not on mount: a permission prompt the pilgrim can connect to
+    // something they just pressed is understandable, and the 3-6 s a cold GPS
+    // fix takes then runs concurrently with them speaking, so it costs the
+    // answer nothing. By the time the transcript is final, ask() usually just
+    // reads it out of the cache.
+    warmUserPosition();
+
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
+    // Online mode: always use Sarvam STT.
+    if (!isOffline) {
+      abortedRef.current = false;
+      cancelSpeech();
+      cancelSarvamSpeech();
+      void startSarvamListening();
+      return;
+    }
+
     const Ctor = getSpeechRecognitionCtor();
     // No recogniser at all, or one that has repeatedly heard nothing.
     if (!Ctor || noSpeechStreakRef.current >= NO_SPEECH_LIMIT) {
       if (Ctor) {
         console.info(
-          `[voice] recogniser returned no-speech ${noSpeechStreakRef.current}x; switching to Sarvam STT`,
+          `[voice] recogniser returned no-speech ${noSpeechStreakRef.current}x; giving up offline`,
         );
       }
       abortedRef.current = false;
       cancelSpeech();
       cancelSarvamSpeech();
-      void startSarvamListening();
+      fail(Ctor ? "no-speech" : "unsupported");
       return;
     }
 
@@ -320,10 +381,8 @@ export function useVoiceAssistant(): VoiceAssistant {
 
       handledFinalRef.current = true;
       noSpeechStreakRef.current = 0;
-      const corrected = applyDetectedLang(final);
-      setTranscript(corrected);
       recognition.stop(); // continuous:false, but stop() releases the mic now.
-      void askRef.current(corrected);
+      void askRef.current(final);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {

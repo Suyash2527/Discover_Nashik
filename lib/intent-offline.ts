@@ -103,6 +103,16 @@ function wantsNearest(query: string): boolean {
   return NEAREST_HINTS.some((h) => q.includes(normalize(h)));
 }
 
+const GENERAL_OFFLINE: Record<LangKey, string> = {
+  en: "I need an internet connection to answer that one. You can still ask me to find places nearby — that works offline.",
+  hi: "इसका उत्तर देने के लिए मुझे इंटरनेट की आवश्यकता है। आप मुझसे आस-पास की जगहें अब भी पूछ सकते हैं — वह ऑफ़लाइन काम करता है।",
+  mr: "याचे उत्तर देण्यासाठी मला इंटरनेट लागेल. जवळची ठिकाणे तुम्ही आताही विचारू शकता — ते ऑफलाइन चालते.",
+};
+
+export function generalOfflineAnswer(lang: Lang): string {
+  return GENERAL_OFFLINE[langKey(lang)];
+}
+
 /**
  * Template-based answer, max 2 sentences, in `lang`.
  * `origin` is the pilgrim's position from AskRequest.lat/lng — when present the

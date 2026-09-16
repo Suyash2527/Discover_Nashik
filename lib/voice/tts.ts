@@ -66,6 +66,9 @@ export function needsExternalVoice(voices: SpeechSynthesisVoice[], lang: Lang): 
 
 /** Browser-side wrapper: load the voice list, then ask needsExternalVoice(). */
 export async function shouldUseExternalVoice(lang: Lang): Promise<boolean> {
+  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+  if (!isOffline) return true; // Online: always use Sarvam TTS
+
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return true;
   return needsExternalVoice(await loadVoices(window.speechSynthesis), lang);
 }
