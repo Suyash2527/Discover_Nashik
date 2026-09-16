@@ -10,7 +10,7 @@
 // phrasing in all three languages. The browser half (permission prompts, the
 // warm-on-tap timing) is verified by hand — see lib/geolocation.ts.
 import { asksDistance, classifyAnswerMode } from "../lib/gemini";
-import { formatDistanceKm, haversineKm } from "../lib/geo";
+import { bearingDeg, compassPoint, formatDistanceKm, haversineKm } from "../lib/geo";
 import { answerOffline } from "../lib/intent-offline";
 import { retrieveScored } from "../lib/rag";
 import type { Lang } from "../types";
@@ -96,6 +96,35 @@ if (ramkund) {
   // Zero distance must not produce "0 m" — formatDistanceKm floors at 10 m,
   // because "you are 0 metres away" is not something to say to a person.
   check("standing on the spot floors at 10 m", formatDistanceKm(0).value === 10);
+}
+
+// ---------------------------------------------------------------------------
+console.log("");
+console.log("Bearing and compass point (for the in-app direction arrow)");
+// ---------------------------------------------------------------------------
+const CARDINALS: Array<[number, string]> = [
+  [0, "north"], [45, "north-east"], [90, "east"], [135, "south-east"],
+  [180, "south"], [225, "south-west"], [270, "west"], [315, "north-west"],
+  [360, "north"],
+];
+for (const [deg, name] of CARDINALS) {
+  check(`${deg} deg -> ${name}`, compassPoint(deg) === name, `got ${compassPoint(deg)}`);
+}
+// Bearings arrive from atan2 and from user input; both can go out of range.
+check("negative bearing wraps", compassPoint(-90) === "west", `got ${compassPoint(-90)}`);
+check("over-360 bearing wraps", compassPoint(450) === "east", `got ${compassPoint(450)}`);
+// Rounding boundaries: 22.5 deg is the north/north-east edge.
+check("22 deg still reads north", compassPoint(22) === "north");
+check("23 deg tips to north-east", compassPoint(23) === "north-east");
+
+if (ramkund) {
+  const b = bearingDeg(CBS, ramkund);
+  check(`CBS -> Ramkund bearing is in range (got ${b.toFixed(1)})`, b >= 0 && b < 360);
+  // Ramkund is north and slightly east of the bus stand.
+  check(`CBS -> Ramkund reads northerly (got ${compassPoint(b)})`,
+    compassPoint(b) === "north" || compassPoint(b) === "north-east");
+  // A place cannot be in a direction from itself, but it must not throw.
+  check("bearing to self is finite", Number.isFinite(bearingDeg(ramkund, ramkund)));
 }
 
 // ---------------------------------------------------------------------------

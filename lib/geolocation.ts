@@ -11,6 +11,7 @@
 // Everything here is best-effort and never throws. A pilgrim who refuses the
 // permission prompt, or is standing under a temple roof with no fix, must still
 // get an answer — just one without a distance in it, exactly as before.
+import { useCallback, useEffect, useState } from "react";
 import type { LatLng } from "./geo";
 
 /**
@@ -135,4 +136,39 @@ export function __resetPositionCache(): void {
   cached = null;
   inFlight = null;
   denied = false;
+}
+
+/**
+ * React binding for the same shared fix, for the map to place a "you are here"
+ * marker and to draw toward a destination.
+ *
+ * Reads the module cache on mount, so a component that appears after the mic
+ * has already been used shows the position immediately instead of prompting
+ * again. `request()` is for a user gesture ("locate me"); the hook never
+ * prompts on its own, because an unexplained permission dialog on page load is
+ * the fastest way to get a permanent denial.
+ */
+export function useUserPosition(): {
+  position: LatLng | null;
+  requested: boolean;
+  request: () => void;
+} {
+  const [position, setPosition] = useState<LatLng | null>(() => lastKnownPosition());
+  const [requested, setRequested] = useState(false);
+
+  const request = useCallback(() => {
+    setRequested(true);
+    void getUserPosition().then((fix) => {
+      if (fix) setPosition(fix);
+    });
+  }, []);
+
+  // Pick up a fix acquired elsewhere (the mic tap) without asking again.
+  useEffect(() => {
+    if (position) return;
+    const known = lastKnownPosition();
+    if (known) setPosition(known);
+  }, [position]);
+
+  return { position, requested, request };
 }
