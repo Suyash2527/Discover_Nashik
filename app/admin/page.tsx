@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
 import { addDoc, collection, deleteDoc, doc } from "firebase/firestore";
 import type { Advisory, Severity } from "@/types/advisory";
@@ -30,11 +30,14 @@ const field = "h-12 w-full rounded-md border border-rule bg-card px-3 text-[17px
 
 export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
-  const [ready, setReady] = useState(!firebaseEnabled);
+  // False during SSR and hydration, true after — so the first client render always matches the server HTML.
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
+  const [authReady, setAuthReady] = useState(false);
+  const ready = mounted && (!firebaseEnabled || authReady);
 
   useEffect(() => {
     if (!firebaseEnabled) return;
-    return onAuthStateChanged(auth(), (u) => { setUser(u); setReady(true); });
+    return onAuthStateChanged(auth(), (u) => { setUser(u); setAuthReady(true); });
   }, []);
 
   return (
@@ -52,10 +55,10 @@ export default function AdminPage() {
           )}
         </header>
 
-        {!firebaseEnabled ? (
-          <Notice>Firebase is not configured. Fill the NEXT_PUBLIC_FIREBASE_* values in .env.local.</Notice>
-        ) : !ready ? (
+        {!ready ? (
           <p className="kicker mt-6">Loading</p>
+        ) : !firebaseEnabled ? (
+          <Notice>Firebase is not configured. Fill the NEXT_PUBLIC_FIREBASE_* values in .env.local, then restart the dev server.</Notice>
         ) : !user ? (
           <SignIn />
         ) : !isAdminEmail(user.email) ? (
