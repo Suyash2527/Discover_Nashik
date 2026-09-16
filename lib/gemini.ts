@@ -111,6 +111,39 @@ const GENERAL_MARKERS = [
   "इतिहास", "महत्त्व", "सांगा",
 ];
 
+/**
+ * Phrases that ask "how far / how near / what distance".
+ *
+ * Multi-word on purpose. The bare quantifiers किती and कितना are already
+ * GENERAL_MARKERS ("how much should I carry"), so only the distance-bearing
+ * pairs belong here — otherwise every "how many" question would be dragged
+ * into place mode.
+ */
+const DISTANCE_MARKERS = [
+  // English
+  "how far", "how near", "how close", "how long from", "distance to",
+  "distance from", "far is", "far away", "how do i reach", "how to reach",
+  "how do i get to", "way to",
+  // Hindi
+  "कितनी दूर", "कितना दूर", "दूरी", "कितने किलोमीटर", "कैसे पहुंचें",
+  "कैसे पहुँचें", "कैसे जाऊं", "रास्ता",
+  // Marathi
+  "किती लांब", "किती दूर", "अंतर", "किती किलोमीटर", "कसे जायचे",
+  "कसं जायचं", "कुठून जायचे", "वाट",
+];
+
+/**
+ * Is this a "how far is X" question?
+ *
+ * Kept separate from looksGeneral() because it outranks it: distance is the one
+ * thing a pilgrim asks that general knowledge can NEVER supply. See
+ * classifyAnswerMode().
+ */
+export function asksDistance(query: string): boolean {
+  const q = ` ${normalize(query)} `;
+  return DISTANCE_MARKERS.some((marker) => q.includes(` ${normalize(marker)}`));
+}
+
 function looksGeneral(query: string): boolean {
   const q = ` ${normalize(query)} `;
   return GENERAL_MARKERS.some((marker) => q.includes(` ${normalize(marker)}`));
@@ -129,6 +162,15 @@ function looksGeneral(query: string): boolean {
 export function classifyAnswerMode(query: string, topScore: number): AnswerMode {
   if (topScore <= 0) return "general";
   if (topScore >= NAME_MATCH_FLOOR) return "grounded";
+
+  // A distance question is always about a place, so if retrieval found
+  // ANYTHING it must be answered from it. Without this, "त्र्यंबकेश्वर किती
+  // लांब आहे" scored 40 — the name diluted by three surrounding words — then
+  // matched the general marker किती and was answered "I need an internet
+  // connection", discarding the trimbakeshwar-temple hit retrieval had already
+  // made. There is no general-knowledge answer to "how far is it from me".
+  if (asksDistance(query)) return "grounded";
+
   return looksGeneral(query) ? "general" : "grounded";
 }
 
