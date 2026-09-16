@@ -113,14 +113,56 @@ export function recordUtterance(): RecordingHandle {
   return { done, stop: () => stopFn() };
 }
 
+// ---------------------------------------------------------------------------
+// Circuit breaker
+// ---------------------------------------------------------------------------
+// shouldUseExternalVoice() (lib/voice/tts.ts) returns true for EVERY online
+// request, so when the server answers 503 "credentials rejected" — a permanent
+// fault — every subsequent voice answer still pays a full failed round-trip to
+// /api/voice/* before falling back to Web Speech. On a dead key that is dead
+// latency added to every single answer, against a <3 s budget (CONTEXT.md).
+//
+// 503 from our own route means "Sarvam is unavailable, do not retry".
+// 502 means "Sarvam had a bad moment" and IS worth retrying.
+
+/** Set when a route reported 503 (unconfigured or rejected credentials). */
+let sarvamDownSince = 0;
+
+function noteSarvamStatus(status: number): void {
+  if (status === 503) sarvamDownSince = Date.now();
+  else if (status < 400) sarvamDownSince = 0; // Recovered.
+}
+
+/**
+ * True when we should skip Sarvam entirely and go straight to Web Speech.
+ *
+ * TODO(human): decide the retry policy. `sarvamDownSince` is the ms timestamp
+ * of the last 503 (0 = never). Return true to skip the network call.
+ *
+ * The trade-off, both directions real for a pilgrim in a crowd:
+ *  - Never retrying (`return sarvamDownSince > 0`) is fastest, but one blip at
+ *    app start permanently downgrades Marathi to a Hindi-accented voice for the
+ *    whole session — the exact bug Sarvam was added to fix.
+ *  - Retrying after a cooldown (e.g. `Date.now() - sarvamDownSince > 60_000`)
+ *    self-heals when a key is rotated mid-session, at the cost of one slow
+ *    answer per cooldown window.
+ *  - Always retrying (`return false`) is today's behaviour: correct, but slow
+ *    on every answer while the key is dead.
+ */
+function isSarvamKnownDown(): boolean {
+  return false; // placeholder — replace with the policy you choose
+}
+
 /** Transcribe via /api/voice/stt. Returns "" when unavailable. */
 export async function transcribeViaSarvam(audio: Blob, lang: Lang): Promise<string> {
+  if (isSarvamKnownDown()) return "";
   try {
     const form = new FormData();
     form.append("audio", audio, "audio.webm");
     form.append("lang", lang);
 
     const response = await fetch("/api/voice/stt", { method: "POST", body: form });
+    noteSarvamStatus(response.status);
     if (!response.ok) {
       console.warn(`[voice] Sarvam STT unavailable (${response.status})`);
       return "";
@@ -140,6 +182,7 @@ let current: HTMLAudioElement | null = null;
  * the caller knows whether it still has to fall back to speechSynthesis.
  */
 export async function speakViaSarvam(text: string, lang: Lang): Promise<boolean> {
+  if (isSarvamKnownDown()) return false;
   let url: string;
   try {
     const response = await fetch("/api/voice/tts", {
@@ -147,6 +190,7 @@ export async function speakViaSarvam(text: string, lang: Lang): Promise<boolean>
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, lang }),
     });
+    noteSarvamStatus(response.status);
     if (!response.ok) {
       console.warn(`[voice] Sarvam TTS unavailable (${response.status})`);
       return false;

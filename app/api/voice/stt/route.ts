@@ -4,7 +4,7 @@
 // browser, or repeated no-speech). 503 means "Sarvam is not available" and is
 // a normal, expected answer — the client degrades to a typed question.
 import type { NextRequest } from "next/server";
-import { isSarvamConfigured, speechToText } from "@/lib/sarvam";
+import { isSarvamConfigured, SarvamAuthError, speechToText } from "@/lib/sarvam";
 import type { Lang } from "@/types";
 
 const LANGS: Lang[] = ["en-IN", "hi-IN", "mr-IN"];
@@ -42,6 +42,12 @@ export async function POST(request: NextRequest) {
     const transcript = await speechToText(audio, lang as Lang);
     return Response.json({ transcript });
   } catch (error) {
+    // See the matching note in ../tts/route.ts: 503 means "do not bother
+    // retrying Sarvam", 502 means "Sarvam had a bad moment".
+    if (error instanceof SarvamAuthError) {
+      console.error("[api/voice/stt]", error.message);
+      return Response.json({ error: "Sarvam credentials rejected" }, { status: 503 });
+    }
     console.warn("[api/voice/stt] Sarvam STT failed:", (error as Error).message);
     return Response.json({ error: "Transcription failed" }, { status: 502 });
   }

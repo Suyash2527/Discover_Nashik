@@ -4,7 +4,7 @@
 // language (in practice mr-IN). Returns raw audio rather than base64 JSON so
 // the client can hand the blob straight to an <audio> element.
 import type { NextRequest } from "next/server";
-import { isSarvamConfigured, textToSpeech } from "@/lib/sarvam";
+import { isSarvamConfigured, SarvamAuthError, textToSpeech } from "@/lib/sarvam";
 import type { Lang } from "@/types";
 
 const LANGS: Lang[] = ["en-IN", "hi-IN", "mr-IN"];
@@ -42,6 +42,13 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    // A rejected key is a deployment fault, not an upstream blip. Log it loudly
+    // and answer 503 so the client treats Sarvam as unavailable (and stops
+    // paying a round-trip for it) rather than retrying a permanent failure.
+    if (error instanceof SarvamAuthError) {
+      console.error("[api/voice/tts]", error.message);
+      return Response.json({ error: "Sarvam credentials rejected" }, { status: 503 });
+    }
     console.warn("[api/voice/tts] Sarvam TTS failed:", (error as Error).message);
     return Response.json({ error: "Synthesis failed" }, { status: 502 });
   }

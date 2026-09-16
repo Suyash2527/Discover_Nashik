@@ -2,8 +2,10 @@
 // must never reach the client, so this module is imported exclusively from
 // app/api/ — same rule as lib/gemini.ts.
 //
-// Sarvam is a *fallback*, never the primary path. Web Speech is free, instant
-// and already works; Sarvam covers the two places it does not:
+// Sarvam is the PRIMARY voice path whenever the device is online (see
+// shouldUseExternalVoice in lib/voice/tts.ts). Web Speech is the offline
+// fallback. Sarvam wins online because it covers the two places Web Speech
+// fails outright:
 //   - speechToText: browsers with no SpeechRecognition (Firefox, iOS WebViews)
 //   - textToSpeech: languages with no installed voice — in practice mr-IN,
 //     which is missing on nearly every desktop and many Android builds.
@@ -13,8 +15,15 @@ import type { Lang } from "@/types";
 const BASE_URL = process.env.SARVAM_BASE_URL || "https://api.sarvam.ai";
 
 /** Sarvam's ASR and TTS model ids. Pinned so a silent upstream default change
- *  cannot alter latency or accent mid-Kumbh. */
-const STT_MODEL = "saarika:v2.5";
+ *  cannot alter latency or accent mid-Kumbh.
+ *
+ *  saarika:v2.5 is deprecated upstream — /speech-to-text now defaults to
+ *  saaras:v3, and Sarvam's migration note is "use saaras:v3 with
+ *  mode=transcribe". Transcribe mode matters: saaras otherwise *translates*
+ *  to English, which would silently turn a Marathi question into English and
+ *  break the answer-in-the-language-spoken rule (CONTEXT.md). */
+const STT_MODEL = "saaras:v3";
+const STT_MODE = "transcribe";
 const TTS_MODEL = "bulbul:v2";
 
 /**
@@ -24,17 +33,51 @@ const TTS_MODEL = "bulbul:v2";
  */
 const SPEAKER = "anushka";
 
-/** Sarvam rejects TTS input over 500 characters. Voice answers are capped at
- *  2 sentences (CONTEXT.md) so this only ever guards against a malformed
+/** bulbul:v2 rejects TTS input over 1500 characters. Voice answers are capped
+ *  at 2 sentences (CONTEXT.md) so this only ever guards against a malformed
  *  answer — truncating beats a 400. */
-const MAX_TTS_CHARS = 500;
+const MAX_TTS_CHARS = 1500;
 
 /** Budget for either call. A pilgrim never waits more than ~3 s end to end, and
  *  by the time we reach Sarvam some of that budget is already spent. */
 const TIMEOUT_MS = Number(process.env.SARVAM_TIMEOUT_MS) || 4000;
 
+if (!process.env.SARVAM_API_KEY) {
+  console.warn(
+    "[sarvam] SARVAM_API_KEY is not set. Voice falls back to Web Speech, which " +
+      "has no mr-IN voice on most devices. Set SARVAM_API_KEY in .env.local or " +
+      "the Vercel project environment.",
+  );
+} else {
+  console.info(
+    `[sarvam] SARVAM_API_KEY loaded (${process.env.SARVAM_API_KEY.slice(0, 6)}…, ` +
+      `${process.env.SARVAM_API_KEY.length} chars); stt ${STT_MODEL} mode=${STT_MODE}, tts ${TTS_MODEL}`,
+  );
+}
+
 export function isSarvamConfigured(): boolean {
   return Boolean(process.env.SARVAM_API_KEY);
+}
+
+/**
+ * Sarvam rejected our credentials (401/403).
+ *
+ * Split out from a generic failure on purpose. An auth failure is PERMANENT
+ * and needs a human to rotate the key; a 5xx is transient and will fix itself.
+ * Collapsing both into one "Sarvam failed" is exactly what made a dead key look
+ * like a flaky API for days — so the routes surface them as different statuses.
+ */
+export class SarvamAuthError extends Error {
+  readonly status: number;
+  constructor(status: number, detail: string) {
+    super(
+      `Sarvam rejected SARVAM_API_KEY (HTTP ${status}). The key is missing, ` +
+        `revoked, or out of credits — rotate it at https://dashboard.sarvam.ai. ` +
+        `Upstream said: ${detail}`,
+    );
+    this.name = "SarvamAuthError";
+    this.status = status;
+  }
 }
 
 function apiKey(): string {
@@ -55,8 +98,11 @@ async function post(path: string, init: RequestInit): Promise<Response> {
       headers: { ...init.headers, "api-subscription-key": apiKey() },
     });
     if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      throw new Error(`Sarvam ${path} responded ${response.status}: ${detail.slice(0, 200)}`);
+      const detail = (await response.text().catch(() => "")).slice(0, 200);
+      if (response.status === 401 || response.status === 403) {
+        throw new SarvamAuthError(response.status, detail);
+      }
+      throw new Error(`Sarvam ${path} responded ${response.status}: ${detail}`);
     }
     return response;
   } finally {
@@ -65,10 +111,8 @@ async function post(path: string, init: RequestInit): Promise<Response> {
 }
 
 /**
- * Transcribe recorded audio.
- *
- * Used ONLY when the browser has no SpeechRecognition, or when it keeps
- * returning no-speech-detected — never in place of a working recogniser.
+ * Transcribe recorded audio. The primary online path — Web Speech only takes
+ * over when the device is offline or this call fails.
  */
 export async function speechToText(audioBlob: Blob, lang: Lang): Promise<string> {
   if (audioBlob.size === 0) throw new Error("Sarvam STT received empty audio");
@@ -78,6 +122,7 @@ export async function speechToText(audioBlob: Blob, lang: Lang): Promise<string>
   // Chromium produces webm/opus, which Sarvam accepts.
   form.append("file", audioBlob, "audio.webm");
   form.append("model", STT_MODEL);
+  form.append("mode", STT_MODE);
   form.append("language_code", lang);
 
   const response = await post("/speech-to-text", { body: form });
