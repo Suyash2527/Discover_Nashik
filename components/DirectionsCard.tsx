@@ -221,7 +221,7 @@ export default function DirectionsCard({ place, lang, directions, onBack, onClos
             href={navUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-[60px] w-full items-center justify-center gap-3 rounded-xl bg-haldi text-[20px] font-bold text-white shadow-[0_6px_16px_-8px_rgba(226,106,18,.8)] active:opacity-90"
+            className="press flex h-[60px] w-full items-center justify-center gap-3 rounded-xl bg-haldi text-[20px] font-bold text-white shadow-[0_6px_16px_-8px_rgba(226,106,18,.8)] active:opacity-90"
           >
             <NavigationIcon size={22} />
             {pick(lang, "Start navigation", "नेविगेशन शुरू करें", "नेव्हिगेशन सुरू करा")}

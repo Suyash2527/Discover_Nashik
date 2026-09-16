@@ -103,7 +103,71 @@ html, body {
   .rise, .mic-ring::before, .mic-ring::after, .bars span, .user-dot { animation: none !important; }
 }
 
-:focus-visible {
+/* The search combobox shows focus with its own saffron ring. */
+:focus-visible:not([role="combobox"]) {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
+}
+
+
+/* ─── Opening animation (components/Splash.tsx) ────────────────────── */
+.splash {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: radial-gradient(120% 90% at 50% 35%, #9A2A36 0%, #6F1824 45%, #3F0A14 100%);
+  color: #fff; overflow: hidden;
+  animation: splash-out 0.55s cubic-bezier(0.7, 0, 0.84, 0) 2.15s forwards;
+}
+:root[data-splash="seen"] .splash { display: none; }
+.splash-rays {
+  position: absolute; width: 160vmax; height: 160vmax; top: 50%; left: 50%;
+  margin: -80vmax 0 0 -80vmax;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 181, 71, 0.09) 0deg 6deg, transparent 6deg 18deg);
+  mask-image: radial-gradient(circle, #000 0%, transparent 55%);
+  animation: rays-spin 18s linear infinite, fade-in 1s ease-out both;
+}
+.splash-logo { position: relative; animation: logo-in 0.75s cubic-bezier(0.2, 0.9, 0.3, 1.25) both; filter: drop-shadow(0 18px 30px rgba(0,0,0,.35)); }
+.splash-logo svg { border-radius: 30px; }
+.splash-title { position: relative; margin: 14px 0 0; font-size: 34px; line-height: 1; letter-spacing: 0.01em; animation: fade-up 0.6s ease-out 0.85s both; }
+.splash-sub { position: relative; margin: 0; font-size: 15px; font-weight: 600; color: rgba(255,255,255,.75); animation: fade-up 0.6s ease-out 1.05s both; }
+.splash-bar { position: relative; margin-top: 18px; width: 120px; height: 4px; border-radius: 9px; background: rgba(255,255,255,.15); overflow: hidden; animation: fade-in 0.4s ease-out 1.2s both; }
+.splash-bar span { display: block; height: 100%; width: 100%; border-radius: inherit; background: var(--haldi); transform-origin: left; animation: bar-fill 0.9s cubic-bezier(0.4, 0, 0.2, 1) 1.25s both; }
+
+.logo-halo   { transform-box: fill-box; transform-origin: center; animation: halo 1.4s ease-out 0.25s both; }
+.logo-pot    { transform-box: fill-box; transform-origin: 50% 100%; animation: pot-rise 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.15s both; }
+.logo-leaves { transform-box: fill-box; transform-origin: 50% 100%; animation: sprout 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) 0.6s both; }
+.logo-wave   { stroke-dasharray: 1; animation: draw 0.8s ease-out 0.55s both; }
+.logo-wave-2 { animation-delay: 0.72s; }
+
+@keyframes splash-out { to { opacity: 0; transform: scale(1.04); visibility: hidden; pointer-events: none; } }
+@keyframes rays-spin  { to { transform: rotate(360deg); } }
+@keyframes fade-in    { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-up    { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes logo-in    { from { opacity: 0; transform: scale(0.6) rotate(-6deg); } to { opacity: 1; transform: none; } }
+@keyframes halo       { 0% { opacity: 0; transform: scale(0.5); } 60% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes pot-rise   { from { opacity: 0; transform: translateY(60px) scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes sprout     { from { opacity: 0; transform: scale(0.2); } to { opacity: 1; transform: none; } }
+@keyframes draw       { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes bar-fill   { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ─── Search (MapClient SearchField) ───────────────────────────────── */
+@keyframes pop-in { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: none; } }
+.pop-in { animation: pop-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: top center; }
+@keyframes item-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.item-in { animation: item-in 0.22s ease-out both; }
+@keyframes ph-in { from { opacity: 0; transform: translateY(70%); } to { opacity: 1; transform: none; } }
+.ph-in { animation: ph-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes scale-in { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
+.scale-in { animation: scale-in 0.16s ease-out both; }
+.search-hl { background: transparent; color: var(--maroon); font-weight: 700; }
+
+/* Tactile press for big buttons */
+.press { transition: transform 0.12s ease, box-shadow 0.2s ease, background-color 0.2s ease; }
+.press:active { transform: scale(0.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  .splash { animation: splash-out 0.3s ease 0.5s forwards; }
+  .splash *, .splash-rays, .pop-in, .item-in, .ph-in, .scale-in { animation: none !important; }
+  .splash-bar span { transform: none; }
+  .press:active { transform: none; }
 }

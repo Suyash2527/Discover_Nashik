@@ -1,0 +1,55 @@
+/**
+ * Discover Nashik mark: a saffron kalash ("kumbh" = pot) over the Godavari,
+ * on a temple-maroon tile. Same artwork as public/logo.svg and app/icon.svg.
+ *
+ * `animated` plays the opening sequence (see .logo-* in globals.css). No
+ * "use client": the splash renders it from the server layout.
+ */
+export default function Logo({ size = 40, animated = false, tile = true, className = "" }: {
+  size?: number; animated?: boolean; tile?: boolean; className?: string;
+}) {
+  const a = (name: string) => (animated ? name : undefined);
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+      width={size}
+      height={size}
+      className={className}
+      role="img"
+      aria-label="Discover Nashik"
+    >
+      <defs>
+        <linearGradient id="dn-bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#9A2A36" />
+          <stop offset="1" stopColor="#5A0F1C" />
+        </linearGradient>
+        <radialGradient id="dn-halo" cx="0.5" cy="0.42" r="0.5">
+          <stop offset="0" stopColor="#FFB547" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#FFB547" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="dn-pot" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FF9A2E" />
+          <stop offset="1" stopColor="#D9590B" />
+        </linearGradient>
+      </defs>
+      {tile && <rect width="512" height="512" rx="116" fill="url(#dn-bg)" />}
+      <circle className={a("logo-halo")} cx="256" cy="230" r="200" fill="url(#dn-halo)" />
+      <g className={a("logo-pot")}>
+        <g className={a("logo-leaves")}>
+          <path d="M256 196 C214 184 176 150 168 112 C204 118 240 150 256 196 Z" fill="#7BC46A" />
+          <path d="M256 196 C298 184 336 150 344 112 C308 118 272 150 256 196 Z" fill="#7BC46A" />
+          <ellipse cx="256" cy="150" rx="42" ry="50" fill="#FFD27A" />
+          <path d="M232 128 Q256 104 280 128" fill="none" stroke="#E0A53A" strokeWidth="8" strokeLinecap="round" />
+        </g>
+        <rect x="178" y="196" width="156" height="26" rx="13" fill="#FFB14E" />
+        <path d="M206 222 H306 L296 250 H216 Z" fill="#E86E14" />
+        <path d="M216 250 H296 C372 262 398 322 372 364 C352 396 306 408 256 408 C206 408 160 396 140 364 C114 322 140 262 216 250 Z" fill="url(#dn-pot)" />
+        <path d="M150 318 C200 336 312 336 362 318" fill="none" stroke="#FFE3B0" strokeWidth="12" strokeLinecap="round" />
+        <circle cx="256" cy="360" r="11" fill="#FFE3B0" />
+      </g>
+      <path className={a("logo-wave")} pathLength={1} d="M84 438 C124 414 164 414 204 438 S284 462 324 438 S404 414 428 432" fill="none" stroke="#FFFFFF" strokeWidth="16" strokeLinecap="round" />
+      <path className={a("logo-wave logo-wave-2")} pathLength={1} d="M130 472 C164 454 196 454 230 472 S298 490 332 472 S384 458 396 466" fill="none" stroke="#FFFFFF" strokeOpacity="0.5" strokeWidth="12" strokeLinecap="round" />
+    </svg>
+  );
+}

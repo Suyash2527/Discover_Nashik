@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Digital companion for Kumbh pilgrims in Nashik — maps, voice assistant, works offline.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0f172a",
-    theme_color: "#0f172a",
+    background_color: "#6F1824",
+    theme_color: "#7B1B2A",
     icons: [
       {
         src: "/icon-192.png",
@@ -19,6 +19,12 @@ export default function manifest(): MetadataRoute.Manifest {
         src: "/icon-512.png",
         sizes: "512x512",
         type: "image/png",
+      },
+      {
+        src: "/icon-maskable-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
   };

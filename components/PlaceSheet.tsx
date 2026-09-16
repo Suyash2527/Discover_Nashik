@@ -74,7 +74,7 @@ export default function PlaceSheet({ place, lang, userPos, onClose, onDirections
       <div className="flex gap-2 px-5 pt-4 pb-5">
         <button
           onClick={onDirections}
-          className="flex h-[56px] flex-1 items-center justify-center gap-2 rounded-xl bg-haldi text-[19px] font-bold text-white shadow-[0_6px_16px_-8px_rgba(226,106,18,.8)] active:opacity-90"
+          className="press flex h-[56px] flex-1 items-center justify-center gap-2 rounded-xl bg-haldi text-[19px] font-bold text-white shadow-[0_6px_16px_-8px_rgba(226,106,18,.8)] active:opacity-90"
         >
           <NavigationIcon size={21} />
           {pick(lang, "Directions", "रास्ता", "रस्ता दाखवा")}

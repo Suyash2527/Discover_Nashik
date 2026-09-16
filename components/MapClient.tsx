@@ -6,11 +6,13 @@ import { Place, CATEGORIES, Category } from "@/types/place";
 import type { Lang } from "@/types/voice";
 import { useVoiceAssistant } from "@/lib/voice";
 import { formatDistanceKm, haversineKm, type LatLng } from "@/lib/geo";
-import { CategoryIcon, categoryColor, SearchIcon, LocateIcon, XIcon } from "./icons";
+import { CategoryIcon, categoryColor, LocateIcon, XIcon } from "./icons";
 import { CATEGORY_LABEL, LANGS, loc, pick, placeName } from "./copy";
 import VoicePanel from "./VoicePanel";
 import MicFab from "./MicFab";
 import PlaceSheet from "./PlaceSheet";
+import SearchBox from "./SearchBox";
+import Logo from "./Logo";
 import DirectionsCard from "./DirectionsCard";
 import RouteLine from "./RouteLine";
 import { useDirections } from "./useDirections";
@@ -160,9 +162,7 @@ function Masthead({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void })
   return (
     <div className="flex items-center justify-between px-4 pt-3 md:px-5 md:pt-5">
       <div className="flex items-center gap-2.5">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-haldi font-display text-[24px] leading-none text-white shadow-[0_0_0_3px_rgba(255,255,255,.18)]" aria-hidden>
-          ॐ
-        </span>
+        <Logo size={44} className="shrink-0 rounded-[12px] shadow-[0_0_0_2px_rgba(255,255,255,.22),0_6px_14px_-6px_rgba(0,0,0,.5)]" />
         <div className="leading-none">
           <p className="text-[12px] font-bold tracking-[0.14em] text-white/75 uppercase">
             {pick(lang, "Kumbh guide", "कुंभ गाइड", "कुंभ मार्गदर्शक")}
@@ -188,33 +188,6 @@ function Masthead({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void })
   );
 }
 
-function SearchField({ value, onChange, onSubmit, lang }: {
-  value: string; onChange: (v: string) => void; onSubmit: () => void; lang: Lang;
-}) {
-  return (
-    <form
-      className="mx-4 mt-3 mb-4 flex h-[54px] items-center gap-2.5 rounded-xl bg-card px-4 shadow-[0_6px_18px_-8px_rgba(0,0,0,.45)] focus-within:ring-3 focus-within:ring-haldi md:mx-5"
-      onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
-      role="search"
-    >
-      <SearchIcon size={22} className="shrink-0 text-maroon" />
-      <input
-        type="search"
-        enterKeyHint="search"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={pick(lang, "Where do you want to go?", "कहाँ जाना है?", "कुठे जायचं आहे?")}
-        className="h-full min-w-0 flex-1 bg-transparent text-[18px] text-ink outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
-      />
-      {value && (
-        <button type="button" onClick={() => onChange("")} aria-label="Clear" className="flex h-9 w-9 items-center justify-center rounded-full bg-paper-2 text-ink">
-          <XIcon size={18} />
-        </button>
-      )}
-    </form>
-  );
-}
-
 function Filters({ selected, onToggle, lang }: {
   selected: Set<Category>; onToggle: (c: Category) => void; lang: Lang;
 }) {
@@ -227,7 +200,7 @@ function Filters({ selected, onToggle, lang }: {
             key={c}
             onClick={() => onToggle(c)}
             aria-pressed={on}
-            className={`flex h-11 shrink-0 items-center gap-2 rounded-full border-2 pr-4 pl-1.5 text-[16px] font-semibold transition-colors md:h-10 md:gap-1.5 md:pr-3 md:pl-1 md:text-[15px] ${
+            className={`press flex h-11 shrink-0 items-center gap-2 rounded-full border-2 pr-4 pl-1.5 text-[16px] font-semibold transition-colors md:h-10 md:gap-1.5 md:pr-3 md:pl-1 md:text-[15px] ${
               on ? "border-haldi bg-haldi text-white" : "border-rule bg-card text-ink"
             }`}
           >
@@ -250,7 +223,7 @@ function Dock({ lang, voice, onSOS, onNearMe, locating }: {
 }) {
   return (
     <div className="grid grid-cols-3 items-end bg-card px-5 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))] shadow-[0_-6px_20px_-12px_rgba(42,23,15,.35)]">
-      <button onClick={onSOS} className="flex flex-col items-center gap-1 justify-self-start" aria-label="SOS">
+      <button onClick={onSOS} className="press flex flex-col items-center gap-1 justify-self-start" aria-label="SOS">
         <span className="flex h-12 w-[76px] items-center justify-center rounded-full bg-kumkum text-[18px] font-bold tracking-wider text-white shadow-[0_4px_12px_-4px_rgba(196,32,42,.7)] active:scale-95">
           SOS
         </span>
@@ -261,7 +234,7 @@ function Dock({ lang, voice, onSOS, onNearMe, locating }: {
         <MicFab lang={lang} state={voice.state} onStart={voice.start} onStop={voice.stop} />
       </div>
 
-      <button onClick={onNearMe} className="flex flex-col items-center gap-1 justify-self-end">
+      <button onClick={onNearMe} className="press flex flex-col items-center gap-1 justify-self-end">
         <span className={`flex h-12 w-12 items-center justify-center rounded-full border-2 border-maroon text-maroon active:bg-paper-2 ${locating ? "animate-pulse" : ""}`}>
           <LocateIcon size={22} />
         </span>
@@ -392,6 +365,17 @@ export default function MapClient({ places }: { places: Place[] }) {
       .map((x) => x.p);
   }, [visible, search]);
 
+  // Header dropdown: best matches across every place (filters do not hide them).
+  const suggestions = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return [];
+    return places
+      .filter((p) => matchesQuery(p, q))
+      .map((p) => ({ p, s: matchScore(p, q) }))
+      .sort((a, b) => b.s - a.s)
+      .map((x) => x.p);
+  }, [places, search]);
+
   // The user is looking for something (filter or search) rather than just viewing the map.
   const browsing = filters.size > 0 || search.trim() !== "";
 
@@ -424,13 +408,6 @@ export default function MapClient({ places }: { places: Place[] }) {
       <PlaceSheet place={p} lang={lang} userPos={userPos} onClose={closeSheet} onDirections={() => setRouting(true)} />
     );
 
-  // Typed question: if nothing matches locally, hand it to the assistant.
-  const submitSearch = useCallback(() => {
-    const q = search.trim();
-    if (!q) return;
-    if (visible.length === 1) select(visible[0]);
-    else if (visible.length === 0) void voice.ask(q);
-  }, [search, visible, select, voice]);
 
   const voicePanel = (variant: "float" | "inline") =>
     voiceHidden ? null : (
@@ -451,10 +428,20 @@ export default function MapClient({ places }: { places: Place[] }) {
       <div
         className="grid h-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] [grid-template-areas:'top'_'map'_'dock'] md:grid-cols-[400px_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)_auto] md:[grid-template-areas:'top_map'_'rail_map'_'dock_map']"
       >
-        <header className="z-10 border-b border-rule bg-paper [grid-area:top]">
+        <header className="relative z-40 border-b border-rule bg-paper [grid-area:top]">
           <div className="bg-maroon bg-[radial-gradient(120%_140%_at_100%_0%,#A3302A_0%,transparent_60%)]">
             <Masthead lang={lang} setLang={setLang} />
-            <SearchField value={search} onChange={setSearch} onSubmit={submitSearch} lang={lang} />
+            <SearchBox
+              value={search}
+              onChange={setSearch}
+              lang={lang}
+              places={places}
+              matches={suggestions}
+              userPos={userPos}
+              onPick={(p) => { setSearch(""); select(p); }}
+              onAsk={(q) => { setSearch(""); void voice.ask(q); }}
+              onVoice={voice.start}
+            />
           </div>
           {/* Directions on a phone need every pixel of map for the route. */}
           <div className={routing ? "hidden" : ""}>

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Mukta, Tiro_Devanagari_Marathi } from "next/font/google";
+import Splash from "@/components/Splash";
 import "./globals.css";
 
 const mukta = Mukta({
@@ -22,6 +23,8 @@ export const metadata: Metadata = {
     "Map-first voice guide for Nashik Kumbh pilgrims. Find temples, ghats, food, hospitals and more — in Marathi, Hindi or English.",
   keywords: ["Nashik", "Kumbh", "pilgrimage", "temples", "ghats", "Panchavati"],
   manifest: "/manifest.webmanifest",
+  applicationName: "Discover Nashik",
+  appleWebApp: { capable: true, title: "Nashik", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
@@ -32,8 +35,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${mukta.variable} ${tiro.variable} h-full`}>
-      <body className="h-full overflow-hidden">{children}</body>
+    // suppressHydrationWarning: the splash script sets data-splash before React hydrates.
+    <html lang="en" className={`${mukta.variable} ${tiro.variable} h-full`} suppressHydrationWarning>
+      <body className="h-full overflow-hidden">
+        <Splash />
+        {children}
+      </body>
     </html>
   );
 }
