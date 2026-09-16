@@ -27,7 +27,7 @@ export default function RouteLine({ polyline, destination }: { polyline: string 
     const overlay = document.querySelector<HTMLElement>("[data-map-overlay]")?.getBoundingClientRect();
     const covered = overlay && overlay.height > 0 ? Math.max(0, mapBox.bottom - overlay.top) : 0;
     const bottom = Math.min(covered + 40, Math.round(mapBox.height * 0.8));
-    const pad = { top: 60, left: 40, right: 40, bottom: Math.max(60, bottom) };
+    const pad = { top: 90, left: 50, right: 50, bottom: Math.max(60, bottom) };
     map.fitBounds(bounds, pad);
 
     return () => { casing.setMap(null); line.setMap(null); };

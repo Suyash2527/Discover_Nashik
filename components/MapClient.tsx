@@ -219,7 +219,7 @@ function Filters({ selected, onToggle, lang }: {
   selected: Set<Category>; onToggle: (c: Category) => void; lang: Lang;
 }) {
   return (
-    <div className="hide-scrollbar flex gap-2 overflow-x-auto px-4 py-2.5 md:flex-wrap md:px-5">
+    <div className="hide-scrollbar flex gap-2 overflow-x-auto px-4 py-2.5 md:flex-wrap md:gap-1.5 md:px-5 md:py-3">
       {FILTER_ORDER.map((c) => {
         const on = selected.has(c);
         return (
@@ -227,12 +227,12 @@ function Filters({ selected, onToggle, lang }: {
             key={c}
             onClick={() => onToggle(c)}
             aria-pressed={on}
-            className={`flex h-11 shrink-0 items-center gap-2 rounded-full border-2 pr-4 pl-1.5 text-[16px] font-semibold transition-colors ${
+            className={`flex h-11 shrink-0 items-center gap-2 rounded-full border-2 pr-4 pl-1.5 text-[16px] font-semibold transition-colors md:h-10 md:gap-1.5 md:pr-3 md:pl-1 md:text-[15px] ${
               on ? "border-haldi bg-haldi text-white" : "border-rule bg-card text-ink"
             }`}
           >
             <span
-              className="flex h-8 w-8 items-center justify-center rounded-full text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-white md:h-7 md:w-7"
               style={{ backgroundColor: on ? "rgba(0,0,0,.18)" : categoryColor(c) }}
             >
               <CategoryIcon category={c} size={17} />
@@ -457,7 +457,7 @@ export default function MapClient({ places }: { places: Place[] }) {
             <SearchField value={search} onChange={setSearch} onSubmit={submitSearch} lang={lang} />
           </div>
           {/* Directions on a phone need every pixel of map for the route. */}
-          <div className={routing ? "hidden md:block" : ""}>
+          <div className={routing ? "hidden" : ""}>
             <Filters selected={filters} onToggle={toggleFilter} lang={lang} />
           </div>
         </header>
@@ -466,7 +466,7 @@ export default function MapClient({ places }: { places: Place[] }) {
         <aside className="hidden min-h-0 overflow-y-auto border-r border-rule bg-paper [grid-area:rail] md:block">
           {voicePanel("inline")}
           {selected ? (
-            <div className="border-b border-rule">
+            <div className="m-3 overflow-hidden rounded-2xl border border-rule bg-card shadow-[0_10px_28px_-18px_rgba(42,23,15,.6)]">
               {sheet(selected)}
             </div>
           ) : (
@@ -474,7 +474,8 @@ export default function MapClient({ places }: { places: Place[] }) {
           )}
         </aside>
 
-        <main className="relative min-h-0 [grid-area:map]">
+        <main className="min-h-0 bg-paper p-2 [grid-area:map] md:p-3 md:pl-0">
+          <div className="relative h-full overflow-hidden rounded-2xl border border-rule bg-paper-2 shadow-[0_10px_30px_-18px_rgba(42,23,15,.55)]">
           {!mapReady && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper-2">
               <p className="kicker">{pick(lang, "Loading map", "नक्शा खुल रहा है", "नकाशा उघडत आहे")}</p>
@@ -526,7 +527,7 @@ export default function MapClient({ places }: { places: Place[] }) {
           {/* Phone overlays */}
           <div data-map-overlay className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col gap-2 md:hidden">
             {!selected && browsing && visible.length > 0 && voice.state === "idle" && !voice.answer && (
-              <div className="rise pointer-events-auto max-h-[34dvh] overflow-y-auto rounded-t-xl border-t border-rule bg-paper shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">
+              <div className="rise pointer-events-auto max-h-[34dvh] overflow-y-auto rounded-t-2xl border-t border-rule bg-paper shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">
                 <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-rule" />
                 <PlaceList places={ranked} ranked={search.trim() !== ""} userPos={userPos} lang={lang} onSelect={select} />
               </div>
@@ -538,7 +539,7 @@ export default function MapClient({ places }: { places: Place[] }) {
             )}
             {!selected && <div className="pointer-events-auto pb-3">{voicePanel("float")}</div>}
             {selected && (
-              <div className="pointer-events-auto max-h-[72dvh] overflow-y-auto rounded-t-xl border-t border-rule shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">
+              <div className="pointer-events-auto max-h-[72dvh] overflow-y-auto rounded-t-2xl border-t border-rule bg-card shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">
                 <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-rule" />
                 {sheet(selected)}
               </div>
@@ -557,6 +558,7 @@ export default function MapClient({ places }: { places: Place[] }) {
               {pick(lang, "No place by that name. Press Enter to ask the guide.", "इस नाम की जगह नहीं मिली। Enter दबाकर पूछें।", "या नावाचं ठिकाण नाही. Enter दाबून विचारा.")}
             </div>
           )}
+          </div>
         </main>
 
         <footer className="z-10 [grid-area:dock] md:border-r md:border-rule">
