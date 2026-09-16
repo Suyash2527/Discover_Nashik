@@ -53,6 +53,24 @@ export function pickVoice(voices: SpeechSynthesisVoice[], lang: Lang): VoiceMatc
 }
 
 /**
+ * True when speechSynthesis cannot speak `lang` in `lang` — either no voice at
+ * all, or only a fallback voice from a different language (mr-IN read by a
+ * Hindi voice). This is the trigger for Sarvam TTS.
+ *
+ * Pure and voice-list-injected, so the mr-IN case can be tested on a machine
+ * that happens to *have* a Marathi voice installed.
+ */
+export function needsExternalVoice(voices: SpeechSynthesisVoice[], lang: Lang): boolean {
+  return !pickVoice(voices, lang).exact;
+}
+
+/** Browser-side wrapper: load the voice list, then ask needsExternalVoice(). */
+export async function shouldUseExternalVoice(lang: Lang): Promise<boolean> {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return true;
+  return needsExternalVoice(await loadVoices(window.speechSynthesis), lang);
+}
+
+/**
  * getVoices() is async on Chromium: it returns [] until the voiceschanged
  * event fires. Resolves early when voices are already warm.
  */
