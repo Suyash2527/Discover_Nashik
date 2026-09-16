@@ -142,7 +142,12 @@ export function useVoiceAssistant(): VoiceAssistant {
     [fail],
   );
 
-  askRef.current = ask;
+  // Assigned in an effect, not during render: a render-phase ref write is
+  // unsafe under concurrent rendering / StrictMode. Recogniser callbacks only
+  // read this after mount, so the effect always lands first.
+  useEffect(() => {
+    askRef.current = ask;
+  }, [ask]);
 
   const start = useCallback(() => {
     const Ctor = getSpeechRecognitionCtor();
