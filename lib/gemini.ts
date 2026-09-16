@@ -44,6 +44,31 @@ export function isGeminiConfigured(): boolean {
   return Boolean(process.env.GEMINI_API_KEY);
 }
 
+/**
+ * Shout once, at import time, if there is no key.
+ *
+ * Without this the degradation is silent by design: app/api/ask checks
+ * isGeminiConfigured() and quietly serves offline templates, which look like
+ * real answers. A missing key on Vercel therefore ships an assistant that has
+ * no intelligence at all and never says so. This module is imported only from
+ * app/api/, so the warning lands in the server log at boot, not in the browser.
+ *
+ * Module scope, not inside the request handler: once per process beats once per
+ * question, and it fires before the first pilgrim asks anything.
+ */
+if (!isGeminiConfigured()) {
+  console.warn(
+    "[gemini] GEMINI_API_KEY is not set — /api/ask will answer from offline " +
+      "templates only. Live answers, and every general (non-place) question, " +
+      "will be degraded. Set GEMINI_API_KEY in .env.local or the Vercel " +
+      "project environment.",
+  );
+} else {
+  console.info(
+    `[gemini] GEMINI_API_KEY loaded; model ${process.env.GEMINI_MODEL || DEFAULT_MODEL}`,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Mode selection
 // ---------------------------------------------------------------------------

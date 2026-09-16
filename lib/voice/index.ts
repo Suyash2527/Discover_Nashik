@@ -5,7 +5,7 @@
 //
 // Pipeline:
 //   start() -> SpeechRecognition (listening)
-//     -> final transcript -> correctTranscript() -> ask()
+//     -> final transcript -> detectLang() -> correctTranscript() -> ask()
 //   ask()  -> POST /api/ask (thinking) -> answer + placeIds
 //     -> speechSynthesis (speaking) -> idle
 //
@@ -16,6 +16,9 @@
 //     language (the mr-IN case — see lib/voice/tts.ts)
 // If SARVAM_API_KEY is unset or the API is down, both routes answer and every
 // path here degrades back to exactly the previous Web Speech behaviour.
+//
+// The language sent to /api/ask is the language DETECTED in the utterance, not
+// the one on the UI toggle — see applyDetectedLang() and lib/voice/detect-lang.ts.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AskRequest, AskResponse, Lang, VoiceAssistant, VoiceState } from "@/types";
 import {
@@ -32,6 +35,7 @@ import {
   transcribeViaSarvam,
   type RecordingHandle,
 } from "./sarvam-client";
+import { detectLang } from "./detect-lang";
 import { correctTranscript } from "./stt-corrections";
 import { cancelSpeech, shouldUseExternalVoice, speak } from "./tts";
 
@@ -187,6 +191,37 @@ export function useVoiceAssistant(): VoiceAssistant {
   }, [ask]);
 
   /**
+   * Everything between "we have a final transcript" and "ask the server".
+   *
+   * Order matters: detect on the RAW transcript, then correct. correctTranscript
+   * writes place names in the script of the language it is given, so correcting
+   * first with a stale UI language can flip "रामकुंड" to "Ramkund" and destroy
+   * the very evidence the detector reads.
+   *
+   * langRef is written synchronously so ask() — which reads langRef.current —
+   * sees the detected language on this very call; setLang() then moves the UI
+   * toggle so the reply, the TTS voice and the next utterance all agree.
+   */
+  const applyDetectedLang = useCallback((raw: string): string => {
+    const uiLang = langRef.current;
+    const detection = detectLang(raw, uiLang);
+
+    if (detection.lang !== uiLang) {
+      console.info(
+        `[voice] language ${uiLang} -> ${detection.lang} (${detection.reason})`,
+      );
+      langRef.current = detection.lang;
+      if (mountedRef.current) setLang(detection.lang);
+    }
+
+    const corrected = correctTranscript(raw, detection.lang);
+    if (corrected !== raw) {
+      console.info(`[voice] STT correction: "${raw}" -> "${corrected}"`);
+    }
+    return corrected;
+  }, []);
+
+  /**
    * Record the utterance ourselves and send it to Sarvam.
    *
    * Only reached when the browser recogniser cannot help. Goes straight to
@@ -230,10 +265,10 @@ export function useVoiceAssistant(): VoiceAssistant {
     }
 
     noSpeechStreakRef.current = 0;
-    const corrected = correctTranscript(transcribed, activeLang);
+    const corrected = applyDetectedLang(transcribed);
     setTranscript(corrected);
     void askRef.current(corrected);
-  }, [fail]);
+  }, [applyDetectedLang, fail]);
 
   const start = useCallback(() => {
     const Ctor = getSpeechRecognitionCtor();
@@ -285,10 +320,7 @@ export function useVoiceAssistant(): VoiceAssistant {
 
       handledFinalRef.current = true;
       noSpeechStreakRef.current = 0;
-      const corrected = correctTranscript(final, langRef.current);
-      if (corrected !== final) {
-        console.info(`[voice] STT correction: "${final}" -> "${corrected}"`);
-      }
+      const corrected = applyDetectedLang(final);
       setTranscript(corrected);
       recognition.stop(); // continuous:false, but stop() releases the mic now.
       void askRef.current(corrected);
@@ -320,7 +352,7 @@ export function useVoiceAssistant(): VoiceAssistant {
       console.warn("[voice] recognition.start() failed:", error);
       fail("failed");
     }
-  }, [fail, startSarvamListening]);
+  }, [applyDetectedLang, fail, startSarvamListening]);
 
   const stop = useCallback(() => {
     abortedRef.current = true;

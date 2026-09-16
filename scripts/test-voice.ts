@@ -4,7 +4,8 @@
 // SpeechRecognition and speechSynthesis cannot run here (or in jsdom), so the
 // hook itself is verified manually in a real browser. What IS testable without
 // a browser is tested here: the STT correction table and voice selection,
-// including the mr-IN -> hi-IN fallback.
+// including the mr-IN -> hi-IN fallback, and spoken-language detection.
+import { detectLang } from "../lib/voice/detect-lang";
 import { correctTranscript } from "../lib/voice/stt-corrections";
 import { pickVoice } from "../lib/voice/tts";
 import type { Lang } from "../types";
@@ -58,6 +59,96 @@ const STT_CASES: Array<{ input: string; lang: Lang; expected: string }> = [
 
 for (const c of STT_CASES) {
   check(`[${c.lang}] "${c.input}"`, correctTranscript(c.input, c.lang), c.expected);
+}
+
+// ---------------------------------------------------------------------------
+console.log("");
+console.log("Spoken-language detection");
+// ---------------------------------------------------------------------------
+// The hook used to send the UI toggle's language to /api/ask no matter what was
+// said. `fallback` below is that toggle: every case asserts what detectLang
+// does when the toggle DISAGREES with the utterance, because agreeing is the
+// case that was never broken.
+const DETECT_CASES: Array<{
+  input: string;
+  fallback: Lang;
+  expected: Lang;
+  confident: boolean;
+  note: string;
+}> = [
+  // --- Clear Hindi -----------------------------------------------------------
+  { input: "रामकुंड कहाँ है", fallback: "en-IN", expected: "hi-IN", confident: true, note: "kahan hai" },
+  { input: "क्या भीड़ सुरक्षित है", fallback: "mr-IN", expected: "hi-IN", confident: true, note: "kya ... hai" },
+  { input: "मुझे नज़दीक अस्पताल चाहिए", fallback: "mr-IN", expected: "hi-IN", confident: true, note: "mujhe/chahiye" },
+  { input: "त्र्यंबकेश्वर कैसे जाऊं", fallback: "en-IN", expected: "hi-IN", confident: true, note: "kaise" },
+  { input: "यहाँ शौचालय कहाँ है", fallback: "mr-IN", expected: "hi-IN", confident: true, note: "yahan/kahan" },
+
+  // --- Clear Marathi ---------------------------------------------------------
+  { input: "रामकुंड कुठे आहे", fallback: "en-IN", expected: "mr-IN", confident: true, note: "kuthe aahe" },
+  { input: "जवळचे हॉस्पिटल कुठे आहे", fallback: "hi-IN", expected: "mr-IN", confident: true, note: "javalche" },
+  { input: "मला पाणी पाहिजे", fallback: "hi-IN", expected: "mr-IN", confident: true, note: "mala/pahije" },
+  { input: "कुंभमेळा म्हणजे काय", fallback: "en-IN", expected: "mr-IN", confident: true, note: "kay" },
+  // ळ alone is decisive: no verb, no interrogative, still unmistakably Marathi.
+  { input: "काळाराम मंदिर", fallback: "hi-IN", expected: "mr-IN", confident: true, note: "LLA character" },
+
+  // --- Clear English ---------------------------------------------------------
+  { input: "where is Ramkund", fallback: "mr-IN", expected: "en-IN", confident: true, note: "Latin" },
+  { input: "what should I wear for the holy bath", fallback: "hi-IN", expected: "en-IN", confident: true, note: "Latin" },
+  { input: "nearest toilet in Panchavati", fallback: "mr-IN", expected: "en-IN", confident: true, note: "Latin" },
+  { input: "Is it safe to bring kids", fallback: "hi-IN", expected: "en-IN", confident: true, note: "Latin" },
+
+  // --- Mixed script: a Latin token leaking into Devanagari must not flip it ---
+  { input: "Trimbakeshwar कुठे आहे", fallback: "hi-IN", expected: "mr-IN", confident: true, note: "mixed, Devanagari-dominant" },
+  { input: "Ramkund कहाँ है", fallback: "mr-IN", expected: "hi-IN", confident: true, note: "mixed, Devanagari-dominant" },
+
+  // --- Ambiguous: MUST keep the UI language rather than guess ---------------
+  // Bare noun phrases carry no grammar, so there is nothing to score.
+  { input: "त्र्यंबकेश्वर मंदिर", fallback: "hi-IN", expected: "hi-IN", confident: false, note: "no markers" },
+  { input: "त्र्यंबकेश्वर मंदिर", fallback: "mr-IN", expected: "mr-IN", confident: false, note: "no markers" },
+  // Devanagari with the toggle on English: script rules en-IN out, Hindi is the
+  // safer of the two remaining.
+  { input: "गोदावरी", fallback: "en-IN", expected: "hi-IN", confident: false, note: "Devanagari, toggle was en" },
+  // Code-mixed, markers on both sides -> tie -> keep the toggle.
+  { input: "हॉस्पिटल कुठे है", fallback: "hi-IN", expected: "hi-IN", confident: false, note: "tie" },
+  { input: "हॉस्पिटल कुठे है", fallback: "mr-IN", expected: "mr-IN", confident: false, note: "tie" },
+  // Nothing to judge at all.
+  { input: "", fallback: "mr-IN", expected: "mr-IN", confident: false, note: "empty" },
+  { input: "   ", fallback: "en-IN", expected: "en-IN", confident: false, note: "blank" },
+  { input: "123 456", fallback: "hi-IN", expected: "hi-IN", confident: false, note: "no letters" },
+];
+
+for (const c of DETECT_CASES) {
+  const got = detectLang(c.input, c.fallback);
+  check(
+    `[toggle ${c.fallback}] "${c.input}" (${c.note})`,
+    `${got.lang} ${got.confident ? "confident" : "fallback"}`,
+    `${c.expected} ${c.confident ? "confident" : "fallback"}`,
+  );
+}
+
+// The real pipeline order: detect on the RAW transcript, then correct with the
+// DETECTED language. Correcting first with the stale toggle would rewrite
+// "रामकुंड" to "Ramkund" and destroy the evidence the detector reads.
+// ---------------------------------------------------------------------------
+console.log("");
+console.log("Detection + correction, in pipeline order");
+// ---------------------------------------------------------------------------
+const PIPELINE_CASES: Array<{ raw: string; toggle: Lang; lang: Lang; corrected: string }> = [
+  // UI on English, pilgrim speaks Marathi: answer must be Marathi AND the
+  // mishear must be repaired in Devanagari, not romanised.
+  { raw: "राम कुंड कुठे आहे", toggle: "en-IN", lang: "mr-IN", corrected: "रामकुंड कुठे आहे" },
+  // UI on Marathi, pilgrim speaks Hindi.
+  { raw: "ट्रिंबकेश्वर कहाँ है", toggle: "mr-IN", lang: "hi-IN", corrected: "त्र्यंबकेश्वर कहाँ है" },
+  // UI on Hindi, pilgrim speaks English.
+  { raw: "where is ram cond", toggle: "hi-IN", lang: "en-IN", corrected: "where is Ramkund" },
+  // Agreement case: unchanged behaviour.
+  { raw: "काला राम मंदिर कुठे आहे", toggle: "mr-IN", lang: "mr-IN", corrected: "काळाराम मंदिर कुठे आहे" },
+];
+
+for (const c of PIPELINE_CASES) {
+  const detected = detectLang(c.raw, c.toggle).lang;
+  check(`[toggle ${c.toggle}] "${c.raw}" -> lang`, detected, c.lang);
+  check(`[toggle ${c.toggle}] "${c.raw}" -> text`, correctTranscript(c.raw, detected), c.corrected);
 }
 
 // ---------------------------------------------------------------------------
