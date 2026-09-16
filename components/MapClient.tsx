@@ -156,7 +156,7 @@ export default function MapClient({ places }: { places: Place[] }) {
           <Map 
             defaultCenter={{ lat: 20.0059, lng: 73.791 }} 
             defaultZoom={13} 
-            mapId="DEMO_MAP_ID" 
+            mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID"}
             disableDefaultUI={true}
             gestureHandling="greedy"
           >
