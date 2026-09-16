@@ -9,6 +9,7 @@
 //   2. Live Gemini, only when GEMINI_API_KEY is set — prints real answers so a
 //      human can eyeball groundedness, and asserts the 2-sentence cap and
 //      language of the actual model output.
+import "./load-env";
 import {
   answerGeneralWithGemini,
   answerWithGemini,

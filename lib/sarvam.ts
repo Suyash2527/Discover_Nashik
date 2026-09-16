@@ -24,19 +24,23 @@ const BASE_URL = process.env.SARVAM_BASE_URL || "https://api.sarvam.ai";
  *  break the answer-in-the-language-spoken rule (CONTEXT.md). */
 const STT_MODEL = "saaras:v3";
 const STT_MODE = "transcribe";
-const TTS_MODEL = "bulbul:v2";
+/** bulbul:v2 is gone: Sarvam now answers 400 "Model 'bulbul:v2' has been
+ *  deprecated. Please use 'bulbul:v3' instead." (verified 2026-09-16, even
+ *  though the docs still list v2 as legacy). */
+const TTS_MODEL = "bulbul:v3";
 
 /**
  * Per-language speaker. Sarvam's bulbul speakers are language-agnostic but
- * tuned on Indic phonetics; "anushka" reads Devanagari cleanly and is the
- * closest to the calm, clear register a pilgrim needs in a crowd.
+ * tuned on Indic phonetics. "anushka" was a bulbul:v2 voice and is rejected by
+ * v3; "ritu" is the v3 female voice closest to the calm, clear register a
+ * pilgrim needs in a crowd. Speaker ids are case-sensitive and model-specific.
  */
-const SPEAKER = "anushka";
+const SPEAKER = "ritu";
 
-/** bulbul:v2 rejects TTS input over 1500 characters. Voice answers are capped
+/** bulbul:v3 rejects TTS input over 2500 characters. Voice answers are capped
  *  at 2 sentences (CONTEXT.md) so this only ever guards against a malformed
  *  answer — truncating beats a 400. */
-const MAX_TTS_CHARS = 1500;
+const MAX_TTS_CHARS = 2500;
 
 /** Budget for either call. A pilgrim never waits more than ~3 s end to end, and
  *  by the time we reach Sarvam some of that budget is already spent. */

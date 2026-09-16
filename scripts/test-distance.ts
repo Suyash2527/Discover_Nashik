@@ -9,6 +9,7 @@
 // Covered here: the routing decision, the distance arithmetic, and the offline
 // phrasing in all three languages. The browser half (permission prompts, the
 // warm-on-tap timing) is verified by hand — see lib/geolocation.ts.
+import "./load-env";
 import { asksDistance, classifyAnswerMode } from "../lib/gemini";
 import { bearingDeg, compassPoint, formatDistanceKm, haversineKm } from "../lib/geo";
 import { answerOffline } from "../lib/intent-offline";

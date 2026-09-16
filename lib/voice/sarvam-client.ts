@@ -191,10 +191,10 @@ function noteSarvamStatus(status: number): void {
 /**
  * True when we should skip Sarvam entirely and go straight to Web Speech.
  *
- * TODO(human): decide the retry policy. `sarvamDownSince` is the ms timestamp
- * of the last 503 (0 = never). Return true to skip the network call.
+ * Policy: 60 s cooldown. `sarvamDownSince` is the ms timestamp of the last 503
+ * (0 = never, which is always outside the window).
  *
- * The trade-off, both directions real for a pilgrim in a crowd:
+ * Why a cooldown and not the alternatives, for a pilgrim in a crowd:
  *  - Never retrying (`return sarvamDownSince > 0`) is fastest, but one blip at
  *    app start permanently downgrades Marathi to a Hindi-accented voice for the
  *    whole session — the exact bug Sarvam was added to fix.
@@ -205,7 +205,7 @@ function noteSarvamStatus(status: number): void {
  *    on every answer while the key is dead.
  */
 function isSarvamKnownDown(): boolean {
-  return false; // placeholder — replace with the policy you choose
+  return Date.now() - sarvamDownSince < 60_000;
 }
 
 /** Transcribe via /api/voice/stt. Returns "" when unavailable. */

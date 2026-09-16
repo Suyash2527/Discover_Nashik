@@ -129,11 +129,11 @@ async function testSarvamWrapper() {
   });
 
   await check("textToSpeech truncates over-long text instead of 400ing", async () => {
-    // bulbul:v2's documented input limit is 1500 characters, so probe above it.
+    // bulbul:v3's documented input limit is 2500 characters, so probe above it.
     const calls = stubFetch(() => json({ audios: ["QUJD"] }));
-    await textToSpeech("क".repeat(2000), "mr-IN");
+    await textToSpeech("क".repeat(3000), "mr-IN");
     const body = JSON.parse(calls[0].init.body as string);
-    equal(body.text.length, 1500, "truncated length");
+    equal(body.text.length, 2500, "truncated length");
   });
 
   await check("textToSpeech throws on empty text, HTTP error, and empty audio", async () => {

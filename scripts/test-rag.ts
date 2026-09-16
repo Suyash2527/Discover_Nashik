@@ -1,6 +1,7 @@
 // Smoke-test retrieval + the offline answer templates.
 //   npx tsx scripts/test-rag.ts
 // No network, no API key, no build step required.
+import "./load-env";
 import { answerOffline } from "../lib/intent-offline";
 import { detectCategoryIntents, PLACES, retrieveScored } from "../lib/rag";
 import { CATEGORIES, type Category, type Lang } from "../types";

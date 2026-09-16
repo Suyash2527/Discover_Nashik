@@ -5,6 +5,7 @@
 // hook itself is verified manually in a real browser. What IS testable without
 // a browser is tested here: the STT correction table and voice selection,
 // including the mr-IN -> hi-IN fallback, and spoken-language detection.
+import "./load-env";
 import { detectLang } from "../lib/voice/detect-lang";
 import { correctTranscript } from "../lib/voice/stt-corrections";
 import { pickVoice, shouldUseExternalVoice } from "../lib/voice/tts";
