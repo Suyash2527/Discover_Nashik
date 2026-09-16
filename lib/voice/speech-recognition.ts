@@ -45,6 +45,8 @@ export function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
 }
 
 export function isSpeechRecognitionSupported(): boolean {
+  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+  if (!isOffline) return true; // Online: always supported via Sarvam STT
   return getSpeechRecognitionCtor() !== null;
 }
 

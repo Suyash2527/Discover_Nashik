@@ -7,7 +7,8 @@
 // including the mr-IN -> hi-IN fallback, and spoken-language detection.
 import { detectLang } from "../lib/voice/detect-lang";
 import { correctTranscript } from "../lib/voice/stt-corrections";
-import { pickVoice } from "../lib/voice/tts";
+import { pickVoice, shouldUseExternalVoice } from "../lib/voice/tts";
+import { isSpeechRecognitionSupported } from "../lib/voice/speech-recognition";
 import type { Lang } from "../types";
 
 let failures = 0;
@@ -187,5 +188,61 @@ function describe(match: ReturnType<typeof pickVoice>): string {
 
 // ---------------------------------------------------------------------------
 console.log("");
-console.log(failures === 0 ? "All voice unit tests passed." : `${failures} test(s) FAILED.`);
-if (failures > 0) process.exit(1);
+console.log("Online vs Offline Routing");
+// ---------------------------------------------------------------------------
+
+// Helper to manipulate globals safely in Node
+function setGlobals(onLine: boolean, withSynth: boolean, withStt: boolean) {
+  Object.defineProperty(global, 'navigator', {
+    value: { onLine },
+    writable: true,
+    configurable: true
+  });
+  
+  const synth = withSynth ? {
+    getVoices: () => [voice("en-IN")], // Only en-IN, so mr-IN fails exact match
+    addEventListener: (e: any, cb: any) => setTimeout(cb, 0),
+    removeEventListener: () => {}
+  } : undefined;
+
+  Object.defineProperty(global, 'window', {
+    value: {
+      ...(withSynth ? { speechSynthesis: synth } : {}),
+      ...(withStt ? { SpeechRecognition: class {} } : {})
+    },
+    writable: true,
+    configurable: true
+  });
+}
+
+const originalNavigator = (global as any).navigator;
+const originalWindow = (global as any).window;
+
+// 1. Online: Always use Sarvam
+setGlobals(true, true, true);
+shouldUseExternalVoice("mr-IN").then(res => {
+  check("Online TTS always uses external (Sarvam)", res.toString(), "true");
+  check("Online STT always supported (Sarvam)", isSpeechRecognitionSupported().toString(), "true");
+
+  // 2. Offline: Fall back to Web Speech
+  setGlobals(false, true, true);
+  shouldUseExternalVoice("mr-IN").then(resOffline => {
+    check("Offline TTS evaluates fallback (needs mr-IN, has en-IN -> true)", resOffline.toString(), "true");
+    check("Offline STT relies on Web Speech (available -> true)", isSpeechRecognitionSupported().toString(), "true");
+    
+    // 3. Offline without Web Speech
+    setGlobals(false, false, false);
+    shouldUseExternalVoice("hi-IN").then(resNoSynth => {
+      check("Offline TTS without synth (true)", resNoSynth.toString(), "true");
+      check("Offline STT without Web Speech (false)", isSpeechRecognitionSupported().toString(), "false");
+      
+      // Restore
+      Object.defineProperty(global, 'navigator', { value: originalNavigator, writable: true, configurable: true });
+      Object.defineProperty(global, 'window', { value: originalWindow, writable: true, configurable: true });
+
+      console.log("");
+      console.log(failures === 0 ? "All voice unit tests passed." : `${failures} test(s) FAILED.`);
+      if (failures > 0) process.exit(1);
+    });
+  });
+});

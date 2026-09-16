@@ -9,11 +9,9 @@
 //   ask()  -> POST /api/ask (thinking) -> answer + placeIds
 //     -> speechSynthesis (speaking) -> idle
 //
-// Sarvam AI is a fallback on both ends, never the primary path:
-//   - listening: only when SpeechRecognition is absent, or has returned
-//     no-speech NO_SPEECH_LIMIT times in a row
-//   - speaking: only when speechSynthesis has no voice for the current
-//     language (the mr-IN case — see lib/voice/tts.ts)
+// Sarvam AI is the primary path online, and Web Speech is an offline fallback:
+//   - listening: Sarvam STT is always used online. Web Speech is used offline.
+//   - speaking: Sarvam TTS is always used online. Web Speech is used offline.
 // If SARVAM_API_KEY is unset or the API is down, both routes answer and every
 // path here degrades back to exactly the previous Web Speech behaviour.
 //
@@ -323,18 +321,29 @@ export function useVoiceAssistant(): VoiceAssistant {
     // reads it out of the cache.
     warmUserPosition();
 
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
+    // Online mode: always use Sarvam STT.
+    if (!isOffline) {
+      abortedRef.current = false;
+      cancelSpeech();
+      cancelSarvamSpeech();
+      void startSarvamListening();
+      return;
+    }
+
     const Ctor = getSpeechRecognitionCtor();
     // No recogniser at all, or one that has repeatedly heard nothing.
     if (!Ctor || noSpeechStreakRef.current >= NO_SPEECH_LIMIT) {
       if (Ctor) {
         console.info(
-          `[voice] recogniser returned no-speech ${noSpeechStreakRef.current}x; switching to Sarvam STT`,
+          `[voice] recogniser returned no-speech ${noSpeechStreakRef.current}x; giving up offline`,
         );
       }
       abortedRef.current = false;
       cancelSpeech();
       cancelSarvamSpeech();
-      void startSarvamListening();
+      fail(Ctor ? "no-speech" : "unsupported");
       return;
     }
 
