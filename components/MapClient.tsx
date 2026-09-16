@@ -155,20 +155,27 @@ const isMinorStop = (p: Place) => p.id.startsWith("bus-stop-");
 // ─── Chrome ────────────────────────────────────────────────────────────────
 function Masthead({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
   return (
-    <div className="flex items-end justify-between px-4 pt-3 md:px-5 md:pt-5">
-      <div className="leading-none">
-        <p className="kicker">{pick(lang, "Kumbh guide", "कुंभ गाइड", "कुंभ मार्गदर्शक")}</p>
-        <h1 className="font-display text-[28px] leading-[1.05] md:text-[34px]">
-          {pick(lang, "Nashik", "नासिक", "नाशिक")}
-        </h1>
+    <div className="flex items-center justify-between px-4 pt-3 md:px-5 md:pt-5">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-haldi font-display text-[24px] leading-none text-white shadow-[0_0_0_3px_rgba(255,255,255,.18)]" aria-hidden>
+          ॐ
+        </span>
+        <div className="leading-none">
+          <p className="text-[12px] font-bold tracking-[0.14em] text-white/75 uppercase">
+            {pick(lang, "Kumbh guide", "कुंभ गाइड", "कुंभ मार्गदर्शक")}
+          </p>
+          <h1 className="font-display text-[26px] leading-[1.1] text-white md:text-[30px]">
+            {pick(lang, "Nashik", "नासिक", "नाशिक")}
+          </h1>
+        </div>
       </div>
-      <nav className="flex gap-3 pb-1 text-[14px]" aria-label="Language">
+      <nav className="flex rounded-full bg-black/20 p-1 text-[15px]" aria-label="Language">
         {LANGS.map((l) => (
           <button
             key={l.code}
             onClick={() => setLang(l.code)}
             aria-pressed={lang === l.code}
-            className={`pb-0.5 ${lang === l.code ? "border-b-2 border-ink font-semibold text-ink" : "text-muted"}`}
+            className={`h-9 rounded-full px-3 font-semibold transition-colors ${lang === l.code ? "bg-white text-maroon" : "text-white/85"}`}
           >
             {l.code === "en-IN" ? "EN" : l.label}
           </button>
@@ -183,21 +190,21 @@ function SearchField({ value, onChange, onSubmit, lang }: {
 }) {
   return (
     <form
-      className="mx-4 mt-3 flex h-12 items-center gap-2 rounded-md border border-rule bg-card px-3 focus-within:border-ink md:mx-5"
+      className="mx-4 mt-3 mb-4 flex h-[54px] items-center gap-2.5 rounded-xl bg-card px-4 shadow-[0_6px_18px_-8px_rgba(0,0,0,.45)] focus-within:ring-3 focus-within:ring-haldi md:mx-5"
       onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
       role="search"
     >
-      <SearchIcon size={18} className="shrink-0 text-muted" />
+      <SearchIcon size={22} className="shrink-0 text-maroon" />
       <input
         type="search"
         enterKeyHint="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={pick(lang, "Ramkund, toilet, chemist…", "रामकुंड, शौचालय, दवाई…", "रामकुंड, शौचालय, औषध…")}
-        className="h-full min-w-0 flex-1 bg-transparent text-[17px] outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
+        placeholder={pick(lang, "Where do you want to go?", "कहाँ जाना है?", "कुठे जायचं आहे?")}
+        className="h-full min-w-0 flex-1 bg-transparent text-[18px] text-ink outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
       />
       {value && (
-        <button type="button" onClick={() => onChange("")} aria-label="Clear" className="text-muted">
+        <button type="button" onClick={() => onChange("")} aria-label="Clear" className="flex h-9 w-9 items-center justify-center rounded-full bg-paper-2 text-ink">
           <XIcon size={18} />
         </button>
       )}
@@ -209,7 +216,7 @@ function Filters({ selected, onToggle, lang }: {
   selected: Set<Category>; onToggle: (c: Category) => void; lang: Lang;
 }) {
   return (
-    <div className="hide-scrollbar mt-3 flex gap-1.5 overflow-x-auto px-4 pb-3 md:flex-wrap md:px-5">
+    <div className="hide-scrollbar flex gap-2 overflow-x-auto px-4 py-2.5 md:flex-wrap md:px-5">
       {FILTER_ORDER.map((c) => {
         const on = selected.has(c);
         return (
@@ -217,15 +224,15 @@ function Filters({ selected, onToggle, lang }: {
             key={c}
             onClick={() => onToggle(c)}
             aria-pressed={on}
-            className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full border pr-3.5 pl-1.5 text-[15px] font-medium transition-colors ${
-              on ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink"
+            className={`flex h-11 shrink-0 items-center gap-2 rounded-full border-2 pr-4 pl-1.5 text-[16px] font-semibold transition-colors ${
+              on ? "border-haldi bg-haldi text-white" : "border-rule bg-card text-ink"
             }`}
           >
             <span
-              className="flex h-6 w-6 items-center justify-center rounded-full text-white"
-              style={{ backgroundColor: categoryColor(c) }}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-white"
+              style={{ backgroundColor: on ? "rgba(0,0,0,.18)" : categoryColor(c) }}
             >
-              <CategoryIcon category={c} size={14} />
+              <CategoryIcon category={c} size={17} />
             </span>
             {loc(lang, CATEGORY_LABEL[c])}
           </button>
@@ -239,24 +246,54 @@ function Dock({ lang, voice, onSOS, onNearMe, locating }: {
   lang: Lang; voice: ReturnType<typeof useVoiceAssistant>; onSOS: () => void; onNearMe: () => void; locating: boolean;
 }) {
   return (
-    <div className="grid grid-cols-3 items-end border-t border-rule bg-paper px-4 pt-2 pb-[max(10px,env(safe-area-inset-bottom))]">
+    <div className="grid grid-cols-3 items-end bg-card px-5 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))] shadow-[0_-6px_20px_-12px_rgba(42,23,15,.35)]">
       <button onClick={onSOS} className="flex flex-col items-center gap-1 justify-self-start" aria-label="SOS">
-        <span className="flex h-11 w-[68px] items-center justify-center rounded-full border-2 border-kumkum text-[16px] font-bold tracking-wider text-kumkum active:bg-kumkum active:text-paper">
+        <span className="flex h-12 w-[76px] items-center justify-center rounded-full bg-kumkum text-[18px] font-bold tracking-wider text-white shadow-[0_4px_12px_-4px_rgba(196,32,42,.7)] active:scale-95">
           SOS
         </span>
-        <span className="text-[13px] text-ink-2">{pick(lang, "Help", "मदद", "मदत")}</span>
+        <span className="text-[14px] font-semibold text-ink">{pick(lang, "Help", "मदद", "मदत")}</span>
       </button>
 
-      <div className="justify-self-center">
+      <div className="-mt-6 justify-self-center">
         <MicFab lang={lang} state={voice.state} onStart={voice.start} onStop={voice.stop} />
       </div>
 
       <button onClick={onNearMe} className="flex flex-col items-center gap-1 justify-self-end">
-        <span className={`flex h-11 w-11 items-center justify-center rounded-full border border-ink ${locating ? "animate-pulse" : ""}`}>
-          <LocateIcon size={20} />
+        <span className={`flex h-12 w-12 items-center justify-center rounded-full border-2 border-maroon text-maroon active:bg-paper-2 ${locating ? "animate-pulse" : ""}`}>
+          <LocateIcon size={22} />
         </span>
-        <span className="text-[13px] text-ink-2">{pick(lang, "Near me", "पास में", "जवळ")}</span>
+        <span className="text-[14px] font-semibold text-ink">{pick(lang, "Near me", "पास में", "जवळ")}</span>
       </button>
+    </div>
+  );
+}
+
+/** First thing a pilgrim sees above the dock: the three ways to start, in plain words. */
+function StartCard({ lang, onPick, onClose }: { lang: Lang; onPick: (c: Category) => void; onClose: () => void }) {
+  const quick: Category[] = ["transport", "ghat", "toilet", "hospital"];
+  return (
+    <div className="rise mx-3 rounded-xl border border-rule bg-card p-3.5 shadow-[0_10px_28px_-14px_rgba(42,23,15,.55)]">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[17px] leading-snug font-semibold text-ink">
+          {pick(lang,
+            "Tap the orange mic and ask, or choose:",
+            "केसरिया माइक दबाकर पूछें, या चुनें:",
+            "केशरी माईक दाबून विचारा, किंवा निवडा:")}
+        </p>
+        <button onClick={onClose} aria-label="Close" className="-mt-1 -mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted active:bg-paper-2">
+          <XIcon size={18} />
+        </button>
+      </div>
+      <div className="mt-2.5 grid grid-cols-4 gap-2">
+        {quick.map((c) => (
+          <button key={c} onClick={() => onPick(c)} className="flex flex-col items-center gap-1 rounded-lg bg-paper py-2 active:bg-paper-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ backgroundColor: categoryColor(c) }}>
+              <CategoryIcon category={c} size={20} />
+            </span>
+            <span className="text-center text-[13px] leading-tight font-semibold text-ink">{loc(lang, CATEGORY_LABEL[c])}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -281,14 +318,16 @@ function PlaceList({ places, userPos, lang, onSelect, ranked = false }: {
       <ul className="border-t border-rule">
         {rows.map(({ p, km }) => (
           <li key={p.id} className="border-b border-rule">
-            <button onClick={() => onSelect(p)} className="flex w-full items-center gap-3 px-5 py-2.5 text-left hover:bg-paper-2">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: categoryColor(p.category) }} />
+            <button onClick={() => onSelect(p)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-paper-2 active:bg-paper-2">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white" style={{ backgroundColor: categoryColor(p.category) }}>
+                <CategoryIcon category={p.category} size={19} />
+              </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[16px] font-medium">{placeName(lang, p)}</span>
-                <span className="block truncate text-[13px] text-muted">{p.area}</span>
+                <span className="block truncate text-[17px] font-semibold">{placeName(lang, p)}</span>
+                <span className="block truncate text-[14px] text-muted">{p.area}</span>
               </span>
               {km !== null && (
-                <span className="tnum shrink-0 text-[13px] text-ink-2">
+                <span className="tnum shrink-0 text-[15px] font-semibold text-maroon">
                   {formatDistanceKm(km).value} {formatDistanceKm(km).unit}
                 </span>
               )}
@@ -319,6 +358,7 @@ export default function MapClient({ places }: { places: Place[] }) {
   const [userPos, setUserPos] = useState<LatLng | null>(null);
   const [locating, setLocating] = useState(false);
   const [showSOS, setShowSOS] = useState(false);
+  const [startClosed, setStartClosed] = useState(false);
   // The answer the pilgrim closed; a new answer (or a new question) shows the panel again.
   const [dismissedAnswer, setDismissedAnswer] = useState<string | null>(null);
 
@@ -398,8 +438,10 @@ export default function MapClient({ places }: { places: Place[] }) {
         className="grid h-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] [grid-template-areas:'top'_'map'_'dock'] md:grid-cols-[400px_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)_auto] md:[grid-template-areas:'top_map'_'rail_map'_'dock_map']"
       >
         <header className="z-10 border-b border-rule bg-paper [grid-area:top]">
-          <Masthead lang={lang} setLang={setLang} />
-          <SearchField value={search} onChange={setSearch} onSubmit={submitSearch} lang={lang} />
+          <div className="bg-maroon bg-[radial-gradient(120%_140%_at_100%_0%,#A3302A_0%,transparent_60%)]">
+            <Masthead lang={lang} setLang={setLang} />
+            <SearchField value={search} onChange={setSearch} onSubmit={submitSearch} lang={lang} />
+          </div>
           <Filters selected={filters} onToggle={toggleFilter} lang={lang} />
         </header>
 
@@ -466,6 +508,11 @@ export default function MapClient({ places }: { places: Place[] }) {
               <div className="rise pointer-events-auto max-h-[34dvh] overflow-y-auto rounded-t-xl border-t border-rule bg-paper shadow-[0_-8px_24px_-16px_rgba(29,25,21,.5)]">
                 <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-rule" />
                 <PlaceList places={ranked} ranked={search.trim() !== ""} userPos={userPos} lang={lang} onSelect={select} />
+              </div>
+            )}
+            {!selected && !browsing && !startClosed && voice.state === "idle" && !voice.answer && (
+              <div className="pointer-events-auto pb-3">
+                <StartCard lang={lang} onPick={(c) => { toggleFilter(c); setStartClosed(true); }} onClose={() => setStartClosed(true)} />
               </div>
             )}
             {!selected && <div className="pointer-events-auto pb-3">{voicePanel("float")}</div>}

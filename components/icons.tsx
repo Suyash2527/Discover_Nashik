@@ -285,7 +285,7 @@ export function categoryColor(category: string): string {
     food:     "#9A7414", // haldi, darkened for white icons
     stay:     "#5E4B7C",
     parking:  "#5A6068",
-    transport: "#B0521F", // ST-bus orange
+    transport: "#2F62C4", // bus blue — distinct from temple sindoor
     hospital: "#2F6B45",
     police:   "#2B3D6E",
     toilet:   "#3E7370",

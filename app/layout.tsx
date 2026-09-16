@@ -1,17 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Noto_Sans_Devanagari } from "next/font/google";
+import { Mukta, Tiro_Devanagari_Marathi } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const mukta = Mukta({
+  variable: "--font-mukta",
+  subsets: ["devanagari", "latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const notoDevanagari = Noto_Sans_Devanagari({
-  variable: "--font-noto-devanagari",
+const tiro = Tiro_Devanagari_Marathi({
+  variable: "--font-tiro",
   subsets: ["devanagari", "latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "400",
   display: "swap",
 });
 
@@ -26,15 +27,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#1E3A8A",
+  themeColor: "#7B1B2A",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="mr"
-      className={`${geistSans.variable} ${notoDevanagari.variable} h-full`}
-    >
+    <html lang="en" className={`${mukta.variable} ${tiro.variable} h-full`}>
       <body className="h-full overflow-hidden">{children}</body>
     </html>
   );

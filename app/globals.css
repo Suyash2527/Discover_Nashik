@@ -1,139 +1,109 @@
 @import "tailwindcss";
 
-/* ─── Design Token Layer ─────────────────────────────────────────────── */
+/*
+ * Discover Nashik — "Kumbh".
+ * Saffron and temple maroon on warm cream. Large type and strong contrast so
+ * it reads in sunlight; red is kept for emergencies only.
+ */
 :root {
-  --bg:          #FFFBF5;
-  --card:        #FFFFFF;
-  --text:        #1C1917;
-  --muted:       #57534E;
-  --brand:       #EA580C;
-  --header:      #1E3A8A;
-
-  /* Category colours — chip + pin */
-  --c-temple:    #EA580C;
-  --c-ghat:      #0284C7;
-  --c-food:      #CA8A04;
-  --c-stay:      #7C3AED;
-  --c-parking:   #475569;
-  --c-hospital:  #16A34A;
-  --c-police:    #1D4ED8;
-  --c-toilet:    #0D9488;
-  --c-water:     #0EA5E9;
-  --c-chemist:   #DB2777;
-
-  --sos:         #DC2626;
+  --paper:   #FFF6EA;
+  --paper-2: #FBE9D3;
+  --card:    #FFFFFF;
+  --ink:     #2A170F;
+  --ink-2:   #4B2F22;
+  --muted:   #6E5242;
+  --rule:    #EFD6B8;
+  --haldi:   #E26A12; /* saffron */
+  --maroon:  #7B1B2A;
+  --kumkum:  #C4202A;
+  --river:   #1F5B78;
 }
 
 @theme inline {
-  --color-background:   var(--bg);
-  --color-foreground:   var(--text);
-  --color-brand:        var(--brand);
-  --color-header:       var(--header);
-  --font-sans:          var(--font-geist-sans);
-  --font-devanagari:    var(--font-noto-devanagari);
+  --color-paper:   var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-card:    var(--card);
+  --color-ink:     var(--ink);
+  --color-ink-2:   var(--ink-2);
+  --color-muted:   var(--muted);
+  --color-rule:    var(--rule);
+  --color-haldi:   var(--haldi);
+  --color-maroon:  var(--maroon);
+  --color-kumkum:  var(--kumkum);
+  --color-river:   var(--river);
+  --font-sans:     var(--font-mukta), system-ui, sans-serif;
+  --font-display:  var(--font-tiro), Georgia, serif;
 }
 
-/* ─── Base Reset ────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body {
   height: 100%;
   margin: 0;
-  padding: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans), var(--font-devanagari), system-ui, Arial, sans-serif;
-  font-size: 17px;
-  line-height: 1.5;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mukta), system-ui, sans-serif;
+  font-size: 18px;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* ─── Typography ────────────────────────────────────────────────────── */
-h1, h2, h3 { font-weight: 700; color: var(--header); }
-h1 { font-size: 1.5rem; }
-h2 { font-size: 1.25rem; }
-p  { color: var(--text); }
-
-/* ─── Scrollbar ─────────────────────────────────────────────────────── */
-.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.hide-scrollbar { scrollbar-width: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 
-/* ─── Category chip right-fade ──────────────────────────────────────── */
-.chips-fade::after {
-  content: '';
-  position: absolute;
-  right: 0; top: 0; bottom: 0;
-  width: 40px;
-  background: linear-gradient(to right, transparent, var(--bg));
-  pointer-events: none;
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* Small caps label used for kickers ("TEMPLE · PANCHAVATI") */
+.kicker {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
-/* ─── Map Marker Animations ─────────────────────────────────────────── */
-@keyframes popIn {
-  0%   { transform: scale(0) translateY(20px); opacity: 0; }
-  60%  { transform: scale(1.15) translateY(-4px); opacity: 1; }
-  100% { transform: scale(1) translateY(0); opacity: 1; }
-}
-.marker-pop-in { animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-
-@keyframes highlightPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(234,88,12,0.7); }
-  70%  { box-shadow: 0 0 0 14px rgba(234,88,12,0); }
-  100% { box-shadow: 0 0 0 0 rgba(234,88,12,0); }
-}
-.marker-highlight { animation: highlightPulse 1.8s infinite; }
-
-/* ─── Voice pulsing ring ─────────────────────────────────────────────── */
-@keyframes voicePulse {
-  0%   { box-shadow: 0 0 0 0 rgba(234,88,12,0.7), 0 8px 24px rgba(234,88,12,0.4); }
-  70%  { box-shadow: 0 0 0 20px rgba(234,88,12,0), 0 8px 24px rgba(234,88,12,0.4); }
-  100% { box-shadow: 0 0 0 0 rgba(234,88,12,0), 0 8px 24px rgba(234,88,12,0.4); }
-}
-.voice-pulsing { animation: voicePulse 1.4s infinite; }
-
-/* ─── Thinking dots ─────────────────────────────────────────────────── */
-@keyframes bounce3 {
-  0%, 80%, 100% { transform: scaleY(0.4); }
-  40%            { transform: scaleY(1); }
-}
-.dot-bounce { animation: bounce3 1.2s infinite ease-in-out; }
-.dot-bounce:nth-child(2) { animation-delay: 0.16s; }
-.dot-bounce:nth-child(3) { animation-delay: 0.32s; }
-
-/* ─── Slide-up sheet ────────────────────────────────────────────────── */
-@keyframes slideUp {
-  from { transform: translateY(100%); opacity: 0; }
+/* ─── Motion (kept short and physical) ─────────────────────────────── */
+@keyframes rise {
+  from { transform: translateY(16px); opacity: 0; }
   to   { transform: translateY(0); opacity: 1; }
 }
-.sheet-enter { animation: slideUp 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+.rise { animation: rise 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
-/* ─── Hint overlay ──────────────────────────────────────────────────── */
-@keyframes fadeInScale {
-  from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
+@keyframes ripple {
+  from { transform: scale(1); opacity: 0.45; }
+  to   { transform: scale(1.7); opacity: 0; }
 }
-.hint-enter { animation: fadeInScale 0.3s ease forwards; }
+.mic-ring::before,
+.mic-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--haldi);
+  animation: ripple 1.6s ease-out infinite;
+}
+.mic-ring::after { animation-delay: 0.8s; }
 
-/* ─── Reduced-motion overrides ──────────────────────────────────────── */
+@keyframes bar {
+  0%, 100% { transform: scaleY(0.35); }
+  50%      { transform: scaleY(1); }
+}
+.bars span { display: inline-block; width: 3px; height: 14px; background: currentColor; transform-origin: bottom; animation: bar 0.9s ease-in-out infinite; }
+.bars span:nth-child(2) { animation-delay: 0.15s; }
+.bars span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes locate {
+  from { box-shadow: 0 0 0 0 rgba(31, 91, 120, 0.5); }
+  to   { box-shadow: 0 0 0 14px rgba(31, 91, 120, 0); }
+}
+.user-dot { animation: locate 2s ease-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
-  .marker-pop-in, .marker-highlight, .voice-pulsing, .dot-bounce,
-  .sheet-enter, .hint-enter {
-    animation: none !important;
-    transition: none !important;
-  }
+  .rise, .mic-ring::before, .mic-ring::after, .bars span, .user-dot { animation: none !important; }
 }
 
-/* ─── User location blue dot ─────────────────────────────────────────── */
-@keyframes userPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(59,130,246,0.7); }
-  70%  { box-shadow: 0 0 0 14px rgba(59,130,246,0); }
-  100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
-}
-.user-dot { animation: userPulse 2s infinite; }
-
-/* ─── Focus ring ────────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 3px solid var(--brand);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }

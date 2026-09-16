@@ -1,57 +1,40 @@
 "use client";
 
-import { useVoiceAssistant } from "@/lib/voice";
+import type { VoiceState, Lang } from "@/types/voice";
 import { MicIcon } from "./icons";
+import { pick } from "./copy";
 
 interface Props {
-  lang: "mr-IN" | "hi-IN" | "en-IN";
+  lang: Lang;
+  state: VoiceState;
+  onStart: () => void;
+  onStop: () => void;
 }
 
-const SPEAK_LABEL: Record<string, string> = {
-  "mr-IN": "बोला",
-  "hi-IN": "बोलें",
-  "en-IN": "Speak",
-};
-
-export default function MicFab({ lang }: Props) {
-  const { state, start, stop } = useVoiceAssistant();
-
-  const isActive = state === "listening" || state === "thinking" || state === "speaking";
-  const isListening = state === "listening";
+export default function MicFab({ lang, state, onStart, onStop }: Props) {
+  const busy = state === "listening" || state === "thinking" || state === "speaking";
+  const label = busy ? pick(lang, "Stop", "रोकें", "थांबवा") : pick(lang, "Ask", "पूछें", "विचारा");
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-1">
       <button
-        onClick={isActive ? stop : start}
-        className={`
-          w-[64px] h-[64px] rounded-full
-          flex items-center justify-center
-          shadow-xl transition-all duration-200 active:scale-95
-          ${isListening
-            ? "bg-[#EA580C] text-white voice-pulsing"
-            : state === "thinking"
-            ? "bg-[#EA580C]/80 text-white animate-pulse"
-            : state === "speaking"
-            ? "bg-[#1E3A8A] text-white"
-            : state === "error"
-            ? "bg-[#DC2626] text-white"
-            : "bg-[#EA580C] text-white hover:bg-orange-600"
-          }
-        `}
-        aria-label={isActive ? "Stop" : SPEAK_LABEL[lang] ?? "Speak"}
+        onClick={busy ? onStop : onStart}
+        aria-label={label}
+        className={`relative flex h-[72px] w-[72px] items-center justify-center rounded-full border-4 border-card text-white shadow-[0_8px_20px_-6px_rgba(226,106,18,.75)] transition-transform active:scale-95 ${
+          state === "listening" ? "mic-ring bg-maroon" : state === "error" ? "bg-kumkum" : "bg-haldi"
+        }`}
       >
-        {isActive ? (
-          /* Stop square when recording */
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-            <rect x="6" y="6" width="12" height="12" rx="2" />
-          </svg>
+        {state === "thinking" ? (
+          <span className="bars flex items-end gap-[3px]" aria-hidden>
+            <span /><span /><span />
+          </span>
+        ) : busy ? (
+          <span className="block h-[18px] w-[18px] rounded-[3px] bg-current" aria-hidden />
         ) : (
           <MicIcon size={30} />
         )}
       </button>
-      <span className="text-[13px] font-bold text-[#1C1917] bg-white/80 px-2 py-0.5 rounded-full leading-none">
-        {SPEAK_LABEL[lang] ?? "Speak"}
-      </span>
+      <span className="text-[14px] font-bold text-ink">{label}</span>
     </div>
   );
 }
