@@ -8,6 +8,14 @@
 //     -> final transcript -> correctTranscript() -> ask()
 //   ask()  -> POST /api/ask (thinking) -> answer + placeIds
 //     -> speechSynthesis (speaking) -> idle
+//
+// Sarvam AI is a fallback on both ends, never the primary path:
+//   - listening: only when SpeechRecognition is absent, or has returned
+//     no-speech NO_SPEECH_LIMIT times in a row
+//   - speaking: only when speechSynthesis has no voice for the current
+//     language (the mr-IN case — see lib/voice/tts.ts)
+// If SARVAM_API_KEY is unset or the API is down, both routes answer and every
+// path here degrades back to exactly the previous Web Speech behaviour.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AskRequest, AskResponse, Lang, VoiceAssistant, VoiceState } from "@/types";
 import {
@@ -16,10 +24,23 @@ import {
   type SpeechRecognitionErrorEventLike,
   type SpeechRecognitionLike,
 } from "./speech-recognition";
+import {
+  cancelSarvamSpeech,
+  isRecordingSupported,
+  recordUtterance,
+  speakViaSarvam,
+  transcribeViaSarvam,
+  type RecordingHandle,
+} from "./sarvam-client";
 import { correctTranscript } from "./stt-corrections";
-import { cancelSpeech, speak } from "./tts";
+import { cancelSpeech, shouldUseExternalVoice, speak } from "./tts";
 
 const DEFAULT_LANG: Lang = "mr-IN";
+
+/** Consecutive no-speech results after which we stop trusting the browser
+ *  recogniser and record for Sarvam instead. Two, not one: a single no-speech
+ *  is usually just a pilgrim who tapped the mic before they were ready. */
+const NO_SPEECH_LIMIT = 2;
 
 /** Recogniser failures that are the user's environment, not a bug. */
 const ERROR_MESSAGES: Record<string, Record<"en" | "hi" | "mr", string>> = {
@@ -66,6 +87,20 @@ function errorMessage(code: string, lang: Lang): string {
   return (ERROR_MESSAGES[code] ?? ERROR_MESSAGES.failed)[langKey(lang)];
 }
 
+/**
+ * Speak an answer, preferring Sarvam only where Web Speech cannot do the job.
+ * Never throws: a silent answer still shows on screen.
+ */
+async function speakAnswer(text: string, lang: Lang): Promise<void> {
+  if (await shouldUseExternalVoice(lang)) {
+    console.info(`[voice] no ${lang} speechSynthesis voice; trying Sarvam TTS`);
+    if (await speakViaSarvam(text, lang)) return;
+    // Sarvam missing or down — fall through to whatever the platform offers,
+    // which for mr-IN means the Hindi voice. Wrong accent beats silence.
+  }
+  await speak(text, lang, { onWarn: (message) => console.warn("[voice]", message) });
+}
+
 export function useVoiceAssistant(): VoiceAssistant {
   const [state, setState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState("");
@@ -83,6 +118,10 @@ export function useVoiceAssistant(): VoiceAssistant {
   const abortedRef = useRef(false);
   /** Guards the final-result handler: one ask() per listening session. */
   const handledFinalRef = useRef(false);
+  /** Consecutive no-speech results from the browser recogniser. */
+  const noSpeechStreakRef = useRef(0);
+  /** Live Sarvam recording, so stop() can end it. */
+  const recordingRef = useRef<RecordingHandle | null>(null);
 
   useEffect(() => {
     langRef.current = lang;
@@ -131,9 +170,7 @@ export function useVoiceAssistant(): VoiceAssistant {
       setPlaceIds(result.placeIds ?? []);
       setState("speaking");
 
-      await speak(result.answer, activeLang, {
-        onWarn: (message) => console.warn("[voice]", message),
-      });
+      await speakAnswer(result.answer, activeLang);
 
       // Only fall back to idle if nothing else has taken over — a new question
       // may have arrived while we were speaking.
@@ -149,14 +186,73 @@ export function useVoiceAssistant(): VoiceAssistant {
     askRef.current = ask;
   }, [ask]);
 
-  const start = useCallback(() => {
-    const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) {
+  /**
+   * Record the utterance ourselves and send it to Sarvam.
+   *
+   * Only reached when the browser recogniser cannot help. Goes straight to
+   * "listening" so the UI is identical either way — the pilgrim never learns
+   * which engine heard them.
+   */
+  const startSarvamListening = useCallback(async () => {
+    if (!isRecordingSupported()) {
       fail("unsupported");
       return;
     }
 
+    setTranscript("");
+    setAnswer("");
+    setPlaceIds([]);
+    setState("listening");
+
+    const handle = recordUtterance();
+    recordingRef.current = handle;
+
+    const audio = await handle.done;
+    if (!mountedRef.current || recordingRef.current !== handle) return;
+    recordingRef.current = null;
+
+    if (abortedRef.current) return;
+    if (!audio) {
+      fail("no-speech");
+      return;
+    }
+
+    setState("thinking");
+    const activeLang = langRef.current;
+    const transcribed = await transcribeViaSarvam(audio, activeLang);
+    if (!mountedRef.current || abortedRef.current) return;
+
+    if (!transcribed) {
+      // Sarvam was our last resort; tell the pilgrim to type instead of
+      // looping on a recogniser that has already failed twice.
+      fail("unsupported");
+      return;
+    }
+
+    noSpeechStreakRef.current = 0;
+    const corrected = correctTranscript(transcribed, activeLang);
+    setTranscript(corrected);
+    void askRef.current(corrected);
+  }, [fail]);
+
+  const start = useCallback(() => {
+    const Ctor = getSpeechRecognitionCtor();
+    // No recogniser at all, or one that has repeatedly heard nothing.
+    if (!Ctor || noSpeechStreakRef.current >= NO_SPEECH_LIMIT) {
+      if (Ctor) {
+        console.info(
+          `[voice] recogniser returned no-speech ${noSpeechStreakRef.current}x; switching to Sarvam STT`,
+        );
+      }
+      abortedRef.current = false;
+      cancelSpeech();
+      cancelSarvamSpeech();
+      void startSarvamListening();
+      return;
+    }
+
     cancelSpeech();
+    cancelSarvamSpeech();
     recognitionRef.current?.abort();
 
     const recognition = new Ctor();
@@ -188,6 +284,7 @@ export function useVoiceAssistant(): VoiceAssistant {
       if (!final || handledFinalRef.current) return;
 
       handledFinalRef.current = true;
+      noSpeechStreakRef.current = 0;
       const corrected = correctTranscript(final, langRef.current);
       if (corrected !== final) {
         console.info(`[voice] STT correction: "${final}" -> "${corrected}"`);
@@ -202,6 +299,7 @@ export function useVoiceAssistant(): VoiceAssistant {
       // neither is worth showing the pilgrim.
       if (event.error === "aborted") return;
       if (abortedRef.current && event.error === "no-speech") return;
+      if (event.error === "no-speech") noSpeechStreakRef.current += 1;
       console.warn("[voice] recognition error:", event.error, event.message ?? "");
       fail(event.error);
     };
@@ -209,6 +307,7 @@ export function useVoiceAssistant(): VoiceAssistant {
     recognition.onend = () => {
       if (!mountedRef.current) return;
       // Ended with no final result and no error: nothing was heard.
+      if (!handledFinalRef.current && !abortedRef.current) noSpeechStreakRef.current += 1;
       setState((prev) => (prev === "listening" && !handledFinalRef.current ? "idle" : prev));
     };
 
@@ -221,12 +320,15 @@ export function useVoiceAssistant(): VoiceAssistant {
       console.warn("[voice] recognition.start() failed:", error);
       fail("failed");
     }
-  }, [fail]);
+  }, [fail, startSarvamListening]);
 
   const stop = useCallback(() => {
     abortedRef.current = true;
     recognitionRef.current?.abort();
+    recordingRef.current?.stop();
+    recordingRef.current = null;
     cancelSpeech();
+    cancelSarvamSpeech();
     if (mountedRef.current) setState("idle");
   }, []);
 
@@ -235,7 +337,9 @@ export function useVoiceAssistant(): VoiceAssistant {
     return () => {
       mountedRef.current = false;
       recognitionRef.current?.abort();
+      recordingRef.current?.stop();
       cancelSpeech();
+      cancelSarvamSpeech();
     };
   }, []);
 
