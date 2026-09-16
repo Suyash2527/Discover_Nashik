@@ -6,6 +6,7 @@ import { Place, CATEGORIES, Category } from "@/types/place";
 import { useUserPosition } from "@/lib/geolocation";
 import { bearingDeg, compassPoint, haversineKm, formatDistanceKm } from "@/lib/geo";
 import VoiceButton from "./VoiceButton";
+import EmergencyFab from "./EmergencyFab";
 
 const getCategorySvg = (category: string) => {
   switch (category) {
@@ -287,6 +288,14 @@ export default function MapClient({ places }: { places: Place[] }) {
       <VoiceButton 
          onPlaceIds={setHighlightedPlaceIds} 
          isBottomSheetOpen={!!selectedPlace} 
+      />
+
+      <EmergencyFab
+        onSelectPlace={(place) => {
+          setSelectedPlace(place);
+          setHighlightedPlaceIds([place.id]);
+          setShowDirections(false);
+        }}
       />
 
       {/* Bottom Sheet */}
