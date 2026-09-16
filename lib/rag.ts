@@ -36,9 +36,13 @@ export const CATEGORY_KEYWORDS: Record<Category, string[]> = {
     "canteen", "उपाहारगृह", "eat", "hungry", "भूक", "भूख", "annachhatra",
     "अन्नछत्र",
   ],
+  transport: [
+    "bus", "bus stand", "bus stop", "st stand", "depot", "railway station", "railway", "train", "airport", "flight",
+    "बस", "बस स्टैंड", "रेलवे स्टेशन", "रेलवे", "ट्रेन", "हवाई अड्डा", "बस स्थानक", "एसटी", "रेल्वे", "विमानतळ",
+  ],
   parking: [
     "parking", "पार्किंग", "park vehicle", "गाडी", "gadi", "vehicle",
-    "वाहन", "vahan", "car", "कार", "bus stand", "बस", "two wheeler",
+    "वाहन", "vahan", "car", "कार", "two wheeler",
     "तळ", "vahantal", "वाहनतळ",
   ],
   hospital: [
