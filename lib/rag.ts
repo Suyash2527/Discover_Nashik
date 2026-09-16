@@ -142,10 +142,8 @@ function scoreAgainst(normalizedQuery: string, queryTokens: string[], text: stri
   return best;
 }
 
-/** Scored retrieval, so callers can inspect confidence. Descending by score. */
-export function retrieveScored(query: string, lang: Lang): ScoredPlace[] {
-  void lang; // Matching is language-agnostic: every locale's name is indexed.
-
+/** Every place with a non-zero score, descending. */
+function scoreAll(query: string): ScoredPlace[] {
   const normalizedQuery = normalize(query);
   if (!normalizedQuery) return [];
 
@@ -162,7 +160,60 @@ export function retrieveScored(query: string, lang: Lang): ScoredPlace[] {
   }).filter((s) => s.score > 0);
 
   scored.sort((a, b) => b.score - a.score || a.place.id.localeCompare(b.place.id));
-  return scored.slice(0, TOP_K);
+  return scored;
+}
+
+/** Scored retrieval, so callers can inspect confidence. Descending by score. */
+export function retrieveScored(query: string, lang: Lang): ScoredPlace[] {
+  void lang; // Matching is language-agnostic: every locale's name is indexed.
+  return scoreAll(query).slice(0, TOP_K);
+}
+
+/**
+ * Does the query literally contain this place's own name (any language)?
+ *
+ * A high retrieval score alone does not mean the pilgrim named a place:
+ * several places carry their category word as an alias ("chemist"), and the
+ * category bonus stacks on loose token overlap — "Amrit Snan dates" scores
+ * Ramkund at 64 without mentioning it.
+ */
+export function queryNamesPlace(query: string, place: Place): boolean {
+  const q = ` ${normalize(query)} `;
+  return [place.name.en, place.name.hi, place.name.mr].some((n) => q.includes(` ${normalize(n)} `));
+}
+
+/**
+ * Like retrieveScored, but a pure category question ("nearest chemist") with a
+ * known position returns the CLOSEST places of that category, not the first
+ * five by id.
+ *
+ * retrieveScored gives every chemist the same +45, so the top five is decided
+ * by the id tie-break — with 85 places that routinely drops the chemist two
+ * streets away. Only kicks in below `nameFloor`: once the pilgrim has named a
+ * place, that place must stay first regardless of distance.
+ */
+export function retrieveScoredNear(
+  query: string,
+  lang: Lang,
+  origin: { lat: number; lng: number } | undefined,
+  nameFloor: number,
+): ScoredPlace[] {
+  void lang;
+  const all = scoreAll(query);
+  if (!origin || !all.length) return all.slice(0, TOP_K);
+
+  if (all.some((s) => s.score >= nameFloor && queryNamesPlace(query, s.place))) {
+    return all.slice(0, TOP_K);
+  }
+
+  const intents = detectCategoryIntents(query);
+  const inCategory = all.filter((s) => intents.has(s.place.category));
+  if (!inCategory.length) return all.slice(0, TOP_K);
+
+  const dist = (s: ScoredPlace) =>
+    (s.place.lat - origin.lat) ** 2 +
+    ((s.place.lng - origin.lng) * Math.cos((origin.lat * Math.PI) / 180)) ** 2;
+  return inCategory.sort((a, b) => dist(a) - dist(b)).slice(0, TOP_K);
 }
 
 /** Top-5 places for a voice query. Offline, deterministic. */
