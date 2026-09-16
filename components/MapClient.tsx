@@ -361,7 +361,7 @@ function SOSSheet({ onClose, lang }: { onClose: () => void; lang: "mr-IN" | "hi-
 
 // ─── Main export ───────────────────────────────────────────────────────────
 export default function MapClient({ places }: { places: Place[] }) {
-  const [lang, setLang] = useState<"mr-IN" | "hi-IN" | "en-IN">("mr-IN");
+  const [lang, setLang] = useState<"mr-IN" | "hi-IN" | "en-IN">("en-IN");
   const [selectedCats, setSelectedCats] = useState<Set<Category>>(new Set(CATEGORIES));
   const [search, setSearch] = useState("");
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
