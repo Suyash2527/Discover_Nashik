@@ -74,9 +74,9 @@ export async function speechToText(audioBlob: Blob, lang: Lang): Promise<string>
   if (audioBlob.size === 0) throw new Error("Sarvam STT received empty audio");
 
   const form = new FormData();
-  // Sarvam infers the container from the filename extension; MediaRecorder on
-  // Chromium produces webm/opus, which Sarvam accepts.
-  form.append("file", audioBlob, "audio.webm");
+  // We send standard WAV files encoded directly in the browser because Sarvam
+  // strictly rejects WebM/Opus.
+  form.append("file", audioBlob, "audio.wav");
   form.append("model", STT_MODEL);
   form.append("language_code", lang);
 
