@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "data": "tsx scripts/csv-to-json.ts && tsx scripts/validate-places.ts"
+    "data": "tsx scripts/csv-to-json.ts && tsx scripts/validate-places.ts",
+    "test:voice": "tsx scripts/test-voice-fallback.ts"
   },
   "dependencies": {
     "@google/genai": "^2.22.0",
