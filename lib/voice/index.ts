@@ -19,6 +19,10 @@
 //
 // The language sent to /api/ask is the language DETECTED in the utterance, not
 // the one on the UI toggle — see applyDetectedLang() and lib/voice/detect-lang.ts.
+//
+// Every question also carries the pilgrim's coordinates when we have them, so
+// "how far is Ramkund" gets an actual distance instead of a description. The fix
+// is started on the mic tap and merely collected here — see lib/geolocation.ts.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AskRequest, AskResponse, Lang, VoiceAssistant, VoiceState } from "@/types";
 import {
@@ -35,6 +39,7 @@ import {
   transcribeViaSarvam,
   type RecordingHandle,
 } from "./sarvam-client";
+import { getUserPosition, warmUserPosition } from "../geolocation";
 import { detectLang } from "./detect-lang";
 import { correctTranscript } from "./stt-corrections";
 import { cancelSpeech, shouldUseExternalVoice, speak } from "./tts";
@@ -139,11 +144,50 @@ export function useVoiceAssistant(): VoiceAssistant {
     setState("error");
   }, []);
 
+  /**
+   * Everything between "we have a raw transcript" and "ask the server".
+   *
+   * Order matters: detect on the RAW transcript, then correct. correctTranscript
+   * writes place names in the script of the language it is given, so correcting
+   * first with a stale UI language can flip "रामकुंड" to "Ramkund" and destroy
+   * the very evidence the detector reads.
+   *
+   * langRef is written synchronously so ask() — which reads langRef.current —
+   * sees the detected language on this very call; setLang() then moves the UI
+   * toggle so the reply, the TTS voice and the next utterance all agree.
+   */
+  const applyDetectedLang = useCallback((raw: string): string => {
+    const uiLang = langRef.current;
+    const detection = detectLang(raw, uiLang);
+
+    if (!detection.confident) {
+      console.warn(
+        `[voice] language detection ambiguous for "${raw}" — guessing ${detection.lang} (fallback ${uiLang}): ${detection.reason}`,
+      );
+    }
+
+    if (detection.lang !== uiLang) {
+      console.info(
+        `[voice] language ${uiLang} -> ${detection.lang} (${detection.reason})`,
+      );
+      langRef.current = detection.lang;
+      if (mountedRef.current) setLang(detection.lang);
+    }
+
+    const corrected = correctTranscript(raw, detection.lang);
+    if (corrected !== raw) {
+      console.info(`[voice] STT correction: "${raw}" -> "${corrected}"`);
+    }
+    return corrected;
+  }, []);
+
   /** Typed-input path, and the destination of every recognised utterance. */
   const ask = useCallback(
     async (text: string) => {
-      const query = text.trim();
-      if (!query) return;
+      const raw = text.trim();
+      if (!raw) return;
+
+      const query = applyDetectedLang(raw);
 
       setTranscript(query);
       setState("thinking");
@@ -153,8 +197,18 @@ export function useVoiceAssistant(): VoiceAssistant {
       const activeLang = langRef.current;
       let result: AskResponse;
 
+      // Whatever warmUserPosition() managed to acquire while they were talking.
+      // null is routine (permission refused, no fix indoors) and simply costs
+      // the distance phrasing — /api/ask treats origin as optional throughout.
+      const here = await getUserPosition();
+      if (!mountedRef.current) return;
+
       try {
-        const body: AskRequest = { query, lang: activeLang };
+        const body: AskRequest = {
+          query,
+          lang: activeLang,
+          ...(here && { lat: here.lat, lng: here.lng }),
+        };
         const response = await fetch("/api/ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -180,7 +234,7 @@ export function useVoiceAssistant(): VoiceAssistant {
       // may have arrived while we were speaking.
       if (mountedRef.current) setState((prev) => (prev === "speaking" ? "idle" : prev));
     },
-    [fail],
+    [applyDetectedLang, fail],
   );
 
   // Assigned in an effect, not during render: a render-phase ref write is
@@ -189,37 +243,6 @@ export function useVoiceAssistant(): VoiceAssistant {
   useEffect(() => {
     askRef.current = ask;
   }, [ask]);
-
-  /**
-   * Everything between "we have a final transcript" and "ask the server".
-   *
-   * Order matters: detect on the RAW transcript, then correct. correctTranscript
-   * writes place names in the script of the language it is given, so correcting
-   * first with a stale UI language can flip "रामकुंड" to "Ramkund" and destroy
-   * the very evidence the detector reads.
-   *
-   * langRef is written synchronously so ask() — which reads langRef.current —
-   * sees the detected language on this very call; setLang() then moves the UI
-   * toggle so the reply, the TTS voice and the next utterance all agree.
-   */
-  const applyDetectedLang = useCallback((raw: string): string => {
-    const uiLang = langRef.current;
-    const detection = detectLang(raw, uiLang);
-
-    if (detection.lang !== uiLang) {
-      console.info(
-        `[voice] language ${uiLang} -> ${detection.lang} (${detection.reason})`,
-      );
-      langRef.current = detection.lang;
-      if (mountedRef.current) setLang(detection.lang);
-    }
-
-    const corrected = correctTranscript(raw, detection.lang);
-    if (corrected !== raw) {
-      console.info(`[voice] STT correction: "${raw}" -> "${corrected}"`);
-    }
-    return corrected;
-  }, []);
 
   /**
    * Record the utterance ourselves and send it to Sarvam.
@@ -265,12 +288,17 @@ export function useVoiceAssistant(): VoiceAssistant {
     }
 
     noSpeechStreakRef.current = 0;
-    const corrected = applyDetectedLang(transcribed);
-    setTranscript(corrected);
-    void askRef.current(corrected);
-  }, [applyDetectedLang, fail]);
+    void askRef.current(transcribed);
+  }, [fail]);
 
   const start = useCallback(() => {
+    // On the tap, not on mount: a permission prompt the pilgrim can connect to
+    // something they just pressed is understandable, and the 3-6 s a cold GPS
+    // fix takes then runs concurrently with them speaking, so it costs the
+    // answer nothing. By the time the transcript is final, ask() usually just
+    // reads it out of the cache.
+    warmUserPosition();
+
     const Ctor = getSpeechRecognitionCtor();
     // No recogniser at all, or one that has repeatedly heard nothing.
     if (!Ctor || noSpeechStreakRef.current >= NO_SPEECH_LIMIT) {
@@ -320,10 +348,8 @@ export function useVoiceAssistant(): VoiceAssistant {
 
       handledFinalRef.current = true;
       noSpeechStreakRef.current = 0;
-      const corrected = applyDetectedLang(final);
-      setTranscript(corrected);
       recognition.stop(); // continuous:false, but stop() releases the mic now.
-      void askRef.current(corrected);
+      void askRef.current(final);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {

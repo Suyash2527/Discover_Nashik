@@ -171,8 +171,8 @@ export async function POST(request: NextRequest) {
     try {
       answer = await withTimeout(
         mode === "grounded"
-          ? answerWithGemini(query, lang, places)
-          : answerGeneralWithGemini(query, lang, places),
+          ? answerWithGemini(query, lang, places, origin)
+          : answerGeneralWithGemini(query, lang, places, origin),
         GEMINI_TIMEOUT_MS,
       );
       source = "gemini";
