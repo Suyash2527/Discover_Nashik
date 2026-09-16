@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "leaflet/dist/leaflet.css";
 
 :root {
   --background: #ffffff;
@@ -32,4 +31,25 @@ body {
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.marker-pop-in {
+  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes highlightPulse {
+  0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); transform: scale(1); }
+  50% { box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); transform: scale(1.1); }
+  100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); transform: scale(1); }
+}
+
+.marker-highlight {
+  animation: highlightPulse 2s infinite;
+  z-index: 1000 !important;
 }
